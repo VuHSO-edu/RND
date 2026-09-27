@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+
+spring:
+  application:
+    name: heritage-platform
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/heritagedb}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.postgresql.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:heritage_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:HeritagePassword@2026}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 105MB
+
+# Cấu hình MinIO Object Storage cho ảnh và video
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:heritage_admin}
+  secret-key: ${MINIO_SECRET_KEY:HeritageMinio@2026}
+  bucket-name: ${MINIO_BUCKET_NAME:heritage-media}
+  # URL tiền tố công khai trả về cho trình duyệt (nếu dùng reverse proxy hoặc truy cập ngoài)
+  public-url-prefix: ${MINIO_PUBLIC_URL_PREFIX:http://localhost:9000/heritage-media}
+
+heritage:
+  jwt:
+    secret: "heritageSecretKeyForDevMustBeAtLeast256BitsLongForHMACSHA256SignatureSecurity"
+    expiration-ms: 86400000 # 24 hours
+  anti-counterfeit:
+    impossible-speed-kmh: 900.0
+    impossible-distance-km: 100.0
+    impossible-time-minutes: 5.0
+  escrow:
+    auto-release-days: 7
+    platform-fee-percent: 0.05 # 5% phí duy trì nền tảng

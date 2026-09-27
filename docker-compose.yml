@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: heritage_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: heritagedb
+      POSTGRES_USER: heritage_user
+      POSTGRES_PASSWORD: HeritagePassword@2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heritage_user -d heritagedb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: heritage_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: heritage_admin
+      MINIO_ROOT_PASSWORD: HeritageMinio@2026
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO Web Console Dashboard
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local

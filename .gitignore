@@ -1,0 +1,137 @@
+# ==========================================
+# GITIGNORE: NỀN TẢNG DI SẢN LÀNG NGHỀ (FULL-STACK)
+# ==========================================
+
+# --- 1. FRONTEND (React, Vite, Node.js) ---
+node_modules/
+*/node_modules/
+fe/node_modules/
+
+# Thư mục build kết quả
+dist/
+*/dist/
+fe/dist/
+dist-ssr/
+build/
+out/
+
+# TypeScript build cache
+*.tsbuildinfo
+fe/tsconfig.tsbuildinfo
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Biến môi trường cục bộ (Chứa API key / Secrets cá nhân)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.local
+
+
+# --- 2. BACKEND (Spring Boot, Java, Maven) ---
+target/
+*/target/
+be/target/
+
+# Bytecode & Archives
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# Maven Wrapper binaries
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+
+# Application Secrets / Cấu hình bảo mật cục bộ
+application-local.yml
+application-local.properties
+application-secret.yml
+be/src/main/resources/application-local.yml
+be/src/main/resources/application-secret.yml
+
+
+# --- 3. DOCKER & DATABASE VOLUMES ---
+postgres_data/
+minio_data/
+docker_volumes/
+data/
+*.rdb
+*.sqlite
+*.sqlite3
+*.db
+
+
+# --- 4. IDEs & CODE EDITORS ---
+# JetBrains (IntelliJ IDEA, WebStorm)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+
+
+# --- 5. HỆ ĐIỀU HÀNH (OS Generated) ---
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+
+# --- 6. LOGS, CACHE & TEMPORARY FILES ---
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+temp/
+tmp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# AI Coding Assistants / Scratch files
+.agents/
+.gemini/
+scratch/

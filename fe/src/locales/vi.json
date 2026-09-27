@@ -1,0 +1,47 @@
+{
+  "common": {
+    "appName": "Nền Tảng Di Sản Văn Hóa & Làng Nghề Số",
+    "popupTitle": "BHTT",
+    "button": {
+      "save": "LƯU DỮ LIỆU",
+      "cancel": "THOÁT",
+      "search": "Tìm kiếm",
+      "verify": "Xác thực",
+      "order": "Đặt tác phẩm",
+      "view3d": "Xem mô hình 3D",
+      "viewAr": "Bật chế độ AR trong phòng",
+      "printQr": "In mã QR / Tem dán"
+    },
+    "validation": {
+      "required": "{{field}} không được để trống",
+      "invalidNumber": "{{field}} phải là số hợp lệ",
+      "confirmExit": "Dữ liệu đã bị thay đổi. Bạn có muốn thoát không?"
+    }
+  },
+  "nav": {
+    "map": "Bản đồ số Làng nghề",
+    "catalog": "Chợ Di Sản",
+    "passport": "Tra cứu Hộ chiếu",
+    "artisanStudio": "Xưởng Nghệ Nhân"
+  },
+  "passport": {
+    "title": "Hộ Chiếu Di Sản Số",
+    "code": "Mã Hộ chiếu",
+    "status": "Trạng thái xác thực",
+    "verified": "CHÍNH HÃNG ĐỘC BẢN",
+    "anomaly": "CẢNH BÁO QUÉT BẤT THƯỜNG",
+    "storyline": "Dòng thời gian tạo tác",
+    "blockchainLedger": "Bảo chứng Sổ cái Blockchain",
+    "scanHistory": "Lịch sử quét xác thực"
+  },
+  "artisan": {
+    "studioTitle": "Gian Bếp Tác Phẩm Nghệ Nhân",
+    "voiceAssistant": "Trợ lý giọng nói",
+    "createPassport": "TẠO HỘ CHIẾU TÁC PHẨM MỚI",
+    "processOrders": "XỬ LÝ ĐƠN HÀNG CỦA KHÁCH",
+    "printTags": "IN MÃ QR TEM BẢO CHỨNG",
+    "withdraw": "RÚT TIỀN VỀ TÀI KHOẢN NGÂN HÀNG",
+    "availableBalance": "Số dư khả dụng",
+    "escrowBalance": "Đang tạm giữ ký quỹ"
+  }
+}

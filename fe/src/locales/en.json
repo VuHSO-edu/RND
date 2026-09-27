@@ -1,0 +1,47 @@
+{
+  "common": {
+    "appName": "Cultural Heritage & Digital Village Platform",
+    "popupTitle": "BHTT",
+    "button": {
+      "save": "SAVE DATA",
+      "cancel": "EXIT",
+      "search": "Search",
+      "verify": "Verify",
+      "order": "Commission Artwork",
+      "view3d": "View 3D Model",
+      "viewAr": "Launch AR in Room",
+      "printQr": "Print QR / Tag"
+    },
+    "validation": {
+      "required": "{{field}} cannot be empty",
+      "invalidNumber": "{{field}} must be a valid number",
+      "confirmExit": "Data has been modified. Do you want to exit?"
+    }
+  },
+  "nav": {
+    "map": "Heritage Map",
+    "catalog": "Heritage Marketplace",
+    "passport": "Passport Lookup",
+    "artisanStudio": "Artisan Studio"
+  },
+  "passport": {
+    "title": "Digital Heritage Passport",
+    "code": "Passport Code",
+    "status": "Verification Status",
+    "verified": "AUTHENTIC ORIGINAL ARTWORK",
+    "anomaly": "ABNORMAL SCAN ALERT",
+    "storyline": "Crafting Chronology",
+    "blockchainLedger": "Blockchain Ledger Attestation",
+    "scanHistory": "Verification Scan History"
+  },
+  "artisan": {
+    "studioTitle": "Artisan Workshop Studio",
+    "voiceAssistant": "Voice Assistant",
+    "createPassport": "CREATE NEW PASSPORT",
+    "processOrders": "PROCESS CUSTOMER ORDERS",
+    "printTags": "PRINT ATTESTATION TAGS",
+    "withdraw": "WITHDRAW FUNDS TO BANK",
+    "availableBalance": "Available Balance",
+    "escrowBalance": "Escrow Balance"
+  }
+}
