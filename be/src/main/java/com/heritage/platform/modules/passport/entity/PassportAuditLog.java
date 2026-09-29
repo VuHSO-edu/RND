@@ -1,5 +1,6 @@
 package com.heritage.platform.modules.passport.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -23,6 +24,7 @@ public class PassportAuditLog {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "passport_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "product", "batch"})
     private HeritagePassport passport;
 
     @CreationTimestamp
@@ -39,6 +41,13 @@ public class PassportAuditLog {
 
     private Double longitude;
 
+    @Column(name = "accuracy_level", length = 30)
+    @Builder.Default
+    private String accuracyLevel = "GPS_HIGH_ACCURACY"; // GPS_HIGH_ACCURACY, GEOIP_LOW_ACCURACY
+
+    @Column(name = "accuracy_meters")
+    private Double accuracyMeters;
+
     @Column(length = 100)
     private String city;
 
@@ -48,4 +57,7 @@ public class PassportAuditLog {
     @Column(name = "is_anomaly", nullable = false)
     @Builder.Default
     private Boolean isAnomaly = false;
+
+    @Column(name = "warning_note", length = 255)
+    private String warningNote;
 }

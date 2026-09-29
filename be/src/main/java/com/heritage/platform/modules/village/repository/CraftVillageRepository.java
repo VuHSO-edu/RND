@@ -12,4 +12,6 @@ public interface CraftVillageRepository extends JpaRepository<CraftVillage, Long
     List<CraftVillage> findByIsDeletedFalseAndIsActiveTrue();
     Optional<CraftVillage> findBySlugAndIsDeletedFalse(String slug);
     List<CraftVillage> findByRegionAndIsDeletedFalse(String region);
+    Optional<CraftVillage> findByVillageAdminIdAndIsDeletedFalse(Long villageAdminId);
+    List<CraftVillage> findByVerificationStatusAndIsDeletedFalse(String verificationStatus);
 }

@@ -19,4 +19,10 @@ public interface ArtisanProfileRepository extends JpaRepository<ArtisanProfile, 
 
     @EntityGraph(attributePaths = {"user", "craftVillage"})
     Optional<ArtisanProfile> findByUserIdAndIsDeletedFalse(Long userId);
+
+    @EntityGraph(attributePaths = {"user", "craftVillage", "representativeAdmin"})
+    List<ArtisanProfile> findByCraftVillageIdAndIsDeletedFalse(Long craftVillageId);
+
+    @EntityGraph(attributePaths = {"user", "craftVillage"})
+    Optional<ArtisanProfile> findByActivationTokenAndIsDeletedFalse(String activationToken);
 }

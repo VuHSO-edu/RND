@@ -23,12 +23,24 @@ public class AntiCounterfeitService {
     @Value("${heritage.anti-counterfeit.impossible-time-minutes:5.0}")
     private double thresholdTimeMinutes;
 
-    public boolean isScanAnomaly(PassportAuditLog lastScan, Double currentLat, Double currentLon, Instant currentScanTime) {
+    public enum VerificationResult {
+        NORMAL,
+        SUSPICIOUS_WARNING, // Cảnh báo nghi vấn do IP/GeoIP lệch, KHÔNG khóa hộ chiếu
+        COUNTERFEIT_BLOCKED // Cả 2 lần đều có GPS chính xác cao nhưng tốc độ bất khả thi -> Khóa hàng giả
+    }
+
+    public VerificationResult evaluateScanVelocity(
+            PassportAuditLog lastScan,
+            Double currentLat,
+            Double currentLon,
+            String currentAccuracyLevel,
+            Instant currentScanTime
+    ) {
         if (lastScan == null || lastScan.getLatitude() == null || lastScan.getLongitude() == null) {
-            return false;
+            return VerificationResult.NORMAL;
         }
         if (currentLat == null || currentLon == null) {
-            return false;
+            return VerificationResult.NORMAL;
         }
 
         double distanceKm = calculateHaversineDistance(
@@ -43,16 +55,32 @@ public class AntiCounterfeitService {
 
         double hoursDiff = (double) secondsDiff / 3600.0;
         double speedKmh = distanceKm / hoursDiff;
-
         double minutesDiff = (double) secondsDiff / 60.0;
 
-        if (speedKmh > maxPossibleSpeedKmh || (distanceKm > thresholdDistanceKm && minutesDiff < thresholdTimeMinutes)) {
-            log.warn("[HERITAGE_COUNTERFEIT_ALERT] Detected impossible travel velocity: Distance={} km, Time={} mins, Speed={} km/h",
-                    distanceKm, minutesDiff, speedKmh);
-            return true;
+        boolean isImpossibleVelocity = speedKmh > maxPossibleSpeedKmh || (distanceKm > thresholdDistanceKm && minutesDiff < thresholdTimeMinutes);
+
+        if (!isImpossibleVelocity) {
+            return VerificationResult.NORMAL;
         }
 
-        return false;
+        // Kiểm tra phân tầng độ chính xác vị trí (Tiered Geo-velocity Guard)
+        boolean lastIsGps = "GPS_HIGH_ACCURACY".equalsIgnoreCase(lastScan.getAccuracyLevel());
+        boolean currentIsGps = "GPS_HIGH_ACCURACY".equalsIgnoreCase(currentAccuracyLevel);
+
+        if (lastIsGps && currentIsGps) {
+            log.error("[HERITAGE_COUNTERFEIT_BLOCKED] Hai lần quét liên tiếp GPS chính xác cao vượt ngưỡng vật lý: Dist={} km, Time={} min, V={} km/h",
+                    distanceKm, minutesDiff, speedKmh);
+            return VerificationResult.COUNTERFEIT_BLOCKED;
+        } else {
+            log.warn("[HERITAGE_GEOIP_SUSPICIOUS] Vị trí nghi vấn do độ lệch IP/GeoIP (Dist={} km, V={} km/h). Ghi cảnh báo, không khóa thẻ.",
+                    distanceKm, speedKmh);
+            return VerificationResult.SUSPICIOUS_WARNING;
+        }
+    }
+
+    public boolean isScanAnomaly(PassportAuditLog lastScan, Double currentLat, Double currentLon, Instant currentScanTime) {
+        VerificationResult res = evaluateScanVelocity(lastScan, currentLat, currentLon, "GPS_HIGH_ACCURACY", currentScanTime);
+        return res == VerificationResult.COUNTERFEIT_BLOCKED;
     }
 
     private double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {

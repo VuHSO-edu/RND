@@ -67,3 +67,14 @@ Toàn bộ quá trình lập trình (Frontend & Backend) trong dự án này B�
 ## 5. THÔNG BÁO & HỆ THỐNG
 * Title của toàn bộ popup/thông báo thống nhất là **`"BHTT"`**.
 * Dùng đúng bộ Icon: `MESSAGE`, `WARNING`, `ERROR`, `CONFIRM`. Auto-focus nút đầu tiên, hỗ trợ phím `Esc` để đóng và `Tab` để di chuyển.
+
+---
+
+## 6. QUY CHUẨN TỐI ƯU HIỆU NĂNG, MOBILE UX & XỬ LÝ BẤT ĐỒNG BỘ
+* **Xử lý Bất đồng bộ Merkle Root & Blockchain (Sprint 4):**
+  Khi gọi `PUT /api/v1/villages/batches/{batchId}/review`, tác vụ gom hash Merkle Root và gửi transaction on-chain BẮT BUỘC bọc trong `@Async` Service kết hợp Spring `ApplicationEventPublisher` (hàng đợi sự kiện). API phải phản hồi ngay lập tức cho Quản lý làng trên giao diện di động (`HTTP 200/202`), tuyệt đối không bắt client chờ mạng blockchain xác nhận block.
+* **Cấu hình Leaflet Gesture Handling trên Mobile (Sprint 3):**
+  Bản đồ Leaflet trên giao diện di động BẮT BUỘC kích hoạt tính năng điều khiển cử chỉ hai ngón (`gestureHandling: true` hoặc chặn single-finger touch drag), yêu cầu người dùng vuốt bằng 2 ngón tay trên màn hình cảm ứng để di chuyển bản đồ, kèm tooltip chỉ dẫn: *"Dùng 2 ngón tay để di chuyển bản đồ"*, loại bỏ triệt để hiện tượng kẹt tay không cuộn được trang web.
+* **Cơ chế Nén ảnh Client-side trước khi Upload (Sprint 2):**
+  Khi chụp ảnh từ Camera thiết bị di động (`capture="environment"`), kích thước file gốc có thể lên tới $5\text{ MB} - 10\text{ MB}$. Phía Frontend BẮT BUỘC tự động nén ảnh tại client (Client-side Compression qua Canvas / Web Worker) về dung lượng $\le 1.5\text{ MB}$ trước khi gọi `POST /api/v1/media/upload`, nhằm tiết kiệm băng thông 4G và đẩy nhanh tốc độ tải lên MinIO S3.
+

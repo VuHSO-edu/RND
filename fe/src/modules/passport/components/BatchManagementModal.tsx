@@ -1,0 +1,436 @@
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { 
+  PackageCheck, 
+  Layers, 
+  CheckCircle, 
+  XCircle, 
+  ExternalLink, 
+  Plus, 
+  Clock, 
+  Sparkles, 
+  ShieldCheck,
+  ChevronRight,
+  Radio,
+  FileCheck
+} from 'lucide-react';
+import { apiClient } from '../../../services/apiClient';
+
+interface ProductBatch {
+  id: number;
+  batchCode: string;
+  quantity: number;
+  approvalStatus: string;
+  rejectionReason?: string;
+  onchainStatus: string;
+  merkleRootHash?: string;
+  blockchainTxHash?: string;
+  blockchainNetwork?: string;
+  blockNumber?: number;
+  batchNotes?: string;
+  createdAt: string;
+  product?: {
+    id: number;
+    name: string;
+    skuCode: string;
+    coverImageUrl?: string;
+  };
+}
+
+interface BatchManagementModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  villageId?: number;
+  products?: Array<{ id: number; name: string; skuCode: string }>;
+  onBindNfc?: (passportCode: string) => void;
+}
+
+export const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
+  isOpen,
+  onClose,
+  villageId = 1,
+  products = [],
+  onBindNfc
+}) => {
+  const { t } = useTranslation();
+  const [batches, setBatches] = useState<ProductBatch[]>([]);
+  const [selectedBatch, setSelectedBatch] = useState<ProductBatch | null>(null);
+  const [passports, setPassports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Form tạo Lô mới
+  const [productId, setProductId] = useState<number | ''>('');
+  const [quantity, setQuantity] = useState<number>(50);
+  const [batchNotes, setBatchNotes] = useState('');
+  const [craftingVideoUrl, setCraftingVideoUrl] = useState('');
+  const [artisanStoryQuote, setArtisanStoryQuote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Rejection modal
+  const [rejectingBatchId, setRejectingBatchId] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  const loadBatches = async () => {
+    setIsLoading(true);
+    try {
+      const res: any = await apiClient.get(`/villages/batches?villageId=${villageId}`);
+      if (res?.data) {
+        setBatches(res.data);
+      }
+    } catch (err) {
+      console.log('Chưa tải được danh sách lô:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadBatches();
+      if (products.length > 0 && !productId) {
+        setProductId(products[0].id);
+      }
+    }
+  }, [isOpen, villageId]);
+
+  const loadPassports = async (batch: ProductBatch) => {
+    setSelectedBatch(batch);
+    try {
+      const res: any = await apiClient.get(`/villages/batches/${batch.id}/passports`);
+      if (res?.data) {
+        setPassports(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productId) {
+      alert('Vui lòng chọn một tác phẩm SKU');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await apiClient.post('/villages/passports/batch-generate', {
+        productId: Number(productId),
+        quantity: Number(quantity),
+        batchNotes: batchNotes.trim() || undefined,
+        craftingVideoUrl: craftingVideoUrl.trim() || undefined,
+        artisanStoryQuote: artisanStoryQuote.trim() || undefined
+      });
+      alert('Tạo Lô sản phẩm và sinh danh sách Hộ chiếu thành công!');
+      setIsCreating(false);
+      setBatchNotes('');
+      loadBatches();
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi tạo lô sản phẩm');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReviewBatch = async (batchId: number, approved: boolean, reason?: string) => {
+    try {
+      await apiClient.put(`/villages/batches/${batchId}/review`, {
+        approved,
+        rejectionReason: reason
+      });
+      alert(approved 
+        ? 'Duyệt Lô xuất xưởng thành công! Hệ thống đang băm cây Merkle và ghi nhận giao dịch On-chain ngầm.'
+        : 'Đã từ chối duyệt Lô sản phẩm.');
+      setRejectingBatchId(null);
+      setRejectionReason('');
+      loadBatches();
+      if (selectedBatch?.id === batchId) {
+        const updatedRes: any = await apiClient.get(`/villages/batches/${batchId}/passports`);
+        if (updatedRes?.data) setPassports(updatedRes.data);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi cập nhật trạng thái Lô');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div 
+        className="w-full max-w-4xl bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+        style={{ fontFamily: 'Tahoma, sans-serif' }}
+      >
+        {/* Header 56px Chuẩn BHTT */}
+        <div className="h-14 min-h-[56px] px-6 bg-heritage-indigo text-white flex items-center justify-between border-b border-heritage-brass/40 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm">BHTT</span>
+            <span className="text-white/40">|</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              QUẢN LÝ LÔ XUẤT XƯỞNG &amp; MÃ BĂM MERKLE ON-CHAIN
+            </span>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white font-bold text-lg">✕</button>
+        </div>
+
+        {/* Nội dung chính */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-[#f0f2f5]">
+          {/* Thanh tác vụ */}
+          <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div>
+              <h3 className="font-bold text-sm text-heritage-indigo">Danh sách Lô Xuất Xưởng Làng Nghề</h3>
+              <p className="text-xs text-gray-500">Quản lý kiểm định xuất xưởng, sinh Merkle Root Tree và neo bằng chứng Polygon Ledger</p>
+            </div>
+            <button
+              onClick={() => setIsCreating(!isCreating)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-heritage-terracotta hover:bg-red-800 text-white font-bold text-xs rounded shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{isCreating ? 'Đóng Tạo Lô' : 'Khai Báo Lô Mới'}</span>
+            </button>
+          </div>
+
+          {/* Form Tạo Lô Mới */}
+          {isCreating && (
+            <form onSubmit={handleCreateBatch} className="bg-white p-5 rounded-lg border border-heritage-terracotta/30 shadow-md space-y-4">
+              <h4 className="font-bold text-xs uppercase text-heritage-terracotta tracking-wider flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Khai Báo Lô Sản Phẩm &amp; Cấp Hàng Loạt Hộ Chiếu Di Sản
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] font-bold text-black mb-1">
+                    Chọn Mẫu Tác Phẩm SKU <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={productId}
+                    onChange={(e) => setProductId(Number(e.target.value))}
+                    className="w-full h-10 px-3 border border-gray-300 rounded text-[13px] text-[#1677ff] bg-stone-50 focus:outline-none focus:border-[#1677ff]"
+                    required
+                  >
+                    <option value="">-- Chọn tác phẩm SKU đã duyệt --</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.skuCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-black mb-1">
+                    Số Lượng Xuất Xưởng (1 - 1000) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    className="w-full h-10 px-3 border border-gray-300 rounded text-[13px] text-[#1677ff] bg-stone-50 focus:outline-none focus:border-[#1677ff]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-bold text-black mb-1">Ghi Chú Đợt Nung / Xuất Xưởng</label>
+                <textarea
+                  rows={2}
+                  value={batchNotes}
+                  onChange={(e) => setBatchNotes(e.target.value)}
+                  placeholder="Ví dụ: Đợt nung củi truyền thống tháng 9/2026, đất sét non lọc kỹ..."
+                  className="w-full p-2.5 border border-gray-300 rounded text-[13px] text-[#1677ff] bg-stone-50 focus:outline-none focus:border-[#1677ff]"
+                />
+              </div>
+
+              {/* 2-Button Rule: LƯU DỮ LIỆU & THOÁT */}
+              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCreating(false)}
+                  className="px-5 py-2 border border-gray-300 rounded text-xs font-bold text-gray-700 bg-white hover:bg-stone-100 transition-all uppercase"
+                >
+                  THOÁT
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2 bg-[#1677ff] hover:bg-blue-700 text-white rounded text-xs font-bold transition-all shadow-sm uppercase disabled:opacity-50"
+                >
+                  {isSubmitting ? 'ĐANG KHỞI TẠO...' : 'LƯU DỮ LIỆU'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Danh Sách Các Lô Hàng */}
+          <div className="space-y-3">
+            {batches.length === 0 ? (
+              <div className="p-8 bg-white rounded-lg border text-center text-gray-500 text-xs">
+                Chưa có Lô sản phẩm nào được khai báo cho làng nghề.
+              </div>
+            ) : (
+              batches.map((b) => (
+                <div key={b.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-heritage-indigo">{b.batchCode}</span>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                          b.approvalStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                          b.approvalStatus === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {b.approvalStatus === 'APPROVED' ? '✓ ĐÃ DUYỆT XUẤT XƯỞNG' :
+                           b.approvalStatus === 'REJECTED' ? '✕ ĐÃ TỪ CHỐI' : '⏳ CHỜ DUYỆT'}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          b.onchainStatus === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {b.onchainStatus === 'CONFIRMED' ? '⛓️ ON-CHAIN: CONFIRMED' : '⛓️ ' + b.onchainStatus}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Sản phẩm: <strong>{b.product?.name || 'Tác phẩm truyền thống'}</strong> • Số lượng: <strong>{b.quantity} chiếc</strong>
+                      </p>
+                    </div>
+
+                    {/* Thao tác Duyệt Lô */}
+                    <div className="flex items-center gap-2">
+                      {b.approvalStatus === 'PENDING' && (
+                        <>
+                          <button
+                            onClick={() => handleReviewBatch(b.id, true)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded transition-all shadow-sm flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span>Duyệt Lô Xuất Xưởng</span>
+                          </button>
+                          <button
+                            onClick={() => setRejectingBatchId(b.id)}
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs rounded transition-all flex items-center gap-1"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Từ Chối</span>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => loadPassports(b)}
+                        className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-heritage-indigo font-bold text-xs rounded transition-all border border-stone-300 flex items-center gap-1"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Xem {b.quantity} Hộ Chiếu</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Thông tin Blockchain On-chain */}
+                  {b.merkleRootHash && (
+                    <div className="bg-[#FBF9F5] p-3 rounded border border-heritage-brass/30 text-xs space-y-1">
+                      <div className="flex items-center justify-between text-gray-600">
+                        <span>Merkle Root Hash (SHA-256):</span>
+                        <span className="font-mono text-[11px] text-heritage-terracotta font-bold truncate max-w-[320px]">{b.merkleRootHash}</span>
+                      </div>
+                      {b.blockchainTxHash && (
+                        <div className="flex items-center justify-between text-gray-600">
+                          <span>Polygon Tx Hash (Amoy):</span>
+                          <span className="font-mono text-[11px] text-[#1677ff] font-bold truncate max-w-[320px]">{b.blockchainTxHash}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Modal từ chối nhỏ nếu bấm Từ chối */}
+                  {rejectingBatchId === b.id && (
+                    <div className="p-3 bg-red-50 rounded border border-red-200 space-y-2">
+                      <label className="block text-xs font-bold text-red-800">Nhập lý do từ chối xuất xưởng lô:</label>
+                      <input
+                        type="text"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Ví dụ: Sản phẩm chưa đạt độ đồng đều nước men, sai quy cách..."
+                        className="w-full p-2 border border-red-300 rounded text-xs text-red-900 bg-white"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setRejectingBatchId(null)} className="px-3 py-1 text-xs border rounded bg-white">Hủy</button>
+                        <button
+                          onClick={() => handleReviewBatch(b.id, false, rejectionReason)}
+                          className="px-3 py-1 text-xs bg-red-700 text-white rounded font-bold"
+                        >
+                          Xác nhận Từ Chối
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Modal danh sách Hộ chiếu con */}
+          {selectedBatch && (
+            <div className="bg-white p-5 rounded-lg border border-heritage-indigo/20 shadow-md space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <h4 className="font-bold text-xs uppercase text-heritage-indigo tracking-wider">
+                  Danh Sách Hộ Chiếu Di Sản Thuộc Lô {selectedBatch.batchCode} ({passports.length} thẻ)
+                </h4>
+                <button onClick={() => setSelectedBatch(null)} className="text-xs text-gray-500 hover:text-black">Đóng danh sách</button>
+              </div>
+
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {passports.map((p) => (
+                  <div key={p.id} className="p-2.5 bg-stone-50 rounded border border-stone-200 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-heritage-indigo">{p.serialNumber || p.passportCode}</span>
+                      <span className="text-[10px] text-gray-500 ml-2">Mã băm: {p.verificationHash?.substring(0, 16)}...</span>
+                      {p.nfcTagUid ? (
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">
+                          NFC: {p.nfcTagUid}
+                        </span>
+                      ) : (
+                        <span className="ml-2 text-[10px] text-amber-600 font-semibold">Chưa gắn chip NFC</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {onBindNfc && (
+                        <button
+                          onClick={() => onBindNfc(p.passportCode)}
+                          className="px-2.5 py-1 bg-white hover:bg-stone-100 text-[#1677ff] border border-gray-300 rounded text-[11px] font-bold flex items-center gap-1 shadow-sm"
+                        >
+                          <Radio className="w-3 h-3 text-[#1677ff]" />
+                          <span>Gắn NFC</span>
+                        </button>
+                      )}
+                      <a
+                        href={`/passport/${p.passportCode}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 bg-heritage-indigo hover:bg-blue-950 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Xem Thẻ</span>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer 2 nút chuẩn BHTT */}
+        <div className="p-4 bg-white border-t border-gray-200 flex justify-end gap-3 shrink-0">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-stone-200 hover:bg-stone-300 text-black rounded text-xs font-bold transition-all uppercase"
+          >
+            THOÁT
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

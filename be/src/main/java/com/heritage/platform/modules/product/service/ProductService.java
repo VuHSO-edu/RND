@@ -15,6 +15,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.heritage.platform.modules.village.repository.CraftVillageRepository;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ArtisanProfileRepository artisanProfileRepository;
+    private final CraftVillageRepository craftVillageRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<Product> getPublishedProducts(Integer categoryId, int page, int size) {
@@ -58,9 +61,9 @@ public class ProductService {
 
     @Transactional
     public Product createProduct(CreateProductRequest request) {
-        String cleanSlug = request.getSlug().trim().toLowerCase();
+        String cleanSlug = request.getSlug() != null ? request.getSlug().trim().toLowerCase() : "sp-" + System.currentTimeMillis();
         if (productRepository.existsBySlug(cleanSlug)) {
-            throw new BusinessException("DUPLICATE_KEY", "Mã/Slug tác phẩm '" + cleanSlug + "' đã tồn tại");
+            cleanSlug = cleanSlug + "-" + System.currentTimeMillis() % 1000;
         }
 
         ArtisanProfile artisan = null;
@@ -71,22 +74,66 @@ public class ProductService {
             artisan = artisanProfileRepository.findAll().get(0);
         }
 
+        com.heritage.platform.modules.village.entity.CraftVillage village = null;
+        if (request.getVillageId() != null) {
+            village = craftVillageRepository.findById(request.getVillageId()).orElse(null);
+        } else if (artisan != null) {
+            village = artisan.getCraftVillage();
+        }
+
+        String initialStatus = request.getStatus() != null ? request.getStatus() : "PENDING_APPROVAL";
+
         Product product = Product.builder()
                 .name(request.getName().trim())
+                .skuCode(request.getSkuCode() != null ? request.getSkuCode().trim() : "SKU-" + System.currentTimeMillis() % 100000)
                 .slug(cleanSlug)
                 .artisan(artisan)
+                .craftVillage(village)
                 .categoryId(request.getCategoryId() != null ? request.getCategoryId() : 1)
                 .description(request.getDescription())
                 .materialInfo(request.getMaterialInfo())
+                .artisanStory(request.getArtisanStory())
+                .creationProcessVideoUrl(request.getCreationProcessVideoUrl())
                 .dimensions(request.getDimensions())
                 .weightGram(request.getWeightGram())
                 .price(request.getPrice())
                 .stockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 1)
                 .imageUrl(request.getImageUrl())
                 .model3dUrl(request.getModel3dUrl())
-                .status("PUBLISHED")
+                .status(initialStatus)
                 .isUniqueArtwork(true)
                 .build();
+
+        return productRepository.save(product);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Product> getProductsByArtisan(Long artisanId) {
+        return productRepository.findByArtisanIdAndIsDeletedFalse(artisanId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Product> getPendingProductsForVillage(Long villageId) {
+        return productRepository.findByCraftVillageIdAndStatusAndIsDeletedFalse(villageId, "PENDING_APPROVAL");
+    }
+
+    @Transactional
+    public Product reviewProduct(Long productId, Long adminUserId, boolean approved, String rejectionReason) {
+        Product product = productRepository.findByIdAndIsDeletedFalse(productId)
+                .orElseThrow(() -> new BusinessException("NOT_FOUND", "Không tìm thấy sản phẩm với ID: " + productId));
+
+        if (approved) {
+            product.setStatus("APPROVED");
+            product.setRejectionReason(null);
+            log.info("[VILLAGE] Phê duyệt mẫu SKU: {} (id={})", product.getName(), product.getId());
+        } else {
+            if (rejectionReason == null || rejectionReason.isBlank()) {
+                throw new BusinessException("VALIDATION_ERROR", "Lý do từ chối mẫu SKU không được để trống");
+            }
+            product.setStatus("REJECTED");
+            product.setRejectionReason(rejectionReason.trim());
+            log.info("[VILLAGE] Từ chối mẫu SKU: {} (id={}), Lý do: {}", product.getName(), product.getId(), rejectionReason);
+        }
 
         return productRepository.save(product);
     }

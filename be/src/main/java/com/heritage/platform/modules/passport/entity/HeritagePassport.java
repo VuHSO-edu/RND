@@ -1,5 +1,6 @@
 package com.heritage.platform.modules.passport.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.heritage.platform.common.entity.BaseEntity;
 import com.heritage.platform.modules.product.entity.Product;
 import jakarta.persistence.*;
@@ -20,15 +21,27 @@ public class HeritagePassport extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", unique = true, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "craftVillage", "artisan"})
     private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "product", "craftVillage", "artisan"})
+    private ProductBatch batch;
 
     @Column(name = "passport_code", nullable = false, unique = true, length = 64)
     private String passportCode; // UUID hoặc mã định danh cấp phát
 
+    @Column(name = "serial_number", length = 64)
+    private String serialNumber; // Ví dụ: HP-BAT-2026-000001
+
     @Column(name = "nfc_tag_uid", unique = true, length = 128)
     private String nfcTagUid;
+
+    @Column(name = "qr_code_url")
+    private String qrCodeUrl;
 
     @Column(name = "crafting_video_url")
     private String craftingVideoUrl;
@@ -54,7 +67,7 @@ public class HeritagePassport extends BaseEntity {
 
     @Column(nullable = false, length = 30)
     @Builder.Default
-    private String status = "ACTIVE"; // ACTIVE, FLAGGED_ANOMALY, REVOKED
+    private String status = "ACTIVE"; // PENDING_APPROVAL, ACTIVE, FLAGGED_ANOMALY, BLOCKED_COUNTERFEIT, REVOKED
 
     @Column(name = "issued_at", nullable = false)
     @Builder.Default

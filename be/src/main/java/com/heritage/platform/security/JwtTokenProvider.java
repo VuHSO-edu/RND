@@ -19,8 +19,17 @@ public class JwtTokenProvider {
     @Value("${heritage.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
-    private SecretKey getSigningKey() {
+    public SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.get("role", String.class);
     }
 
     public String generateToken(String email, String role) {

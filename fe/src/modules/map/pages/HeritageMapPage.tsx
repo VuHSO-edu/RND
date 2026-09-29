@@ -13,12 +13,17 @@ import {
   ChevronRight,
   Layers,
   Plus,
-  Users
+  Users,
+  Crosshair,
+  MapPinned,
+  Landmark
 } from 'lucide-react';
 import { fetchVillages, CraftVillage } from '../../../services/heritageApi';
 import { Button } from '../../../components/ui/Button';
 import { HeritageDataEntryModal } from '../components/HeritageDataEntryModal';
 import { UserManagementModal } from '../../gis/components/UserManagementModal';
+import { ProposeLocationModal } from '../components/ProposeLocationModal';
+import { apiClient } from '../../../services/apiClient';
 
 // Mock danh sách bổ sung nếu backend chưa nạp kịp
 const FALLBACK_VILLAGES: CraftVillage[] = [
@@ -106,21 +111,37 @@ const VILLAGE_PRODUCTS: Record<string, string[]> = {
   'lang-gom-bau-truc': ['Bình gốm Chăm nung củi', 'Tượng Apsara đất nung', 'Tháp gốm nung khói']
 };
 
+interface CustomLocation {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+}
+
 export const HeritageMapPage: React.FC = () => {
   const { t } = useTranslation();
   const [villages, setVillages] = useState<CraftVillage[]>(FALLBACK_VILLAGES);
   const [selectedVillage, setSelectedVillage] = useState<CraftVillage>(FALLBACK_VILLAGES[0]);
+  const [mapLocations, setMapLocations] = useState<CustomLocation[]>([]);
   const [activeRegion, setActiveRegion] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [isDataModalOpen, setIsDataModalOpen] = useState<boolean>(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
+  const [isProposeModalOpen, setIsProposeModalOpen] = useState<boolean>(false);
+  const [showGestureTooltip, setShowGestureTooltip] = useState<boolean>(false);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
   
   // Leaflet Map References
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Record<number, L.Marker>>({});
+  const locationMarkersRef = useRef<L.Marker[]>([]);
+  const userLocationMarkerRef = useRef<L.CircleMarker | null>(null);
 
-  // 1. Tải danh sách làng nghề từ API
+  // 1. Tải danh sách làng nghề và các điểm di sản vệ tinh từ API
   const loadVillages = () => {
     fetchVillages()
       .then((data) => {
@@ -132,8 +153,19 @@ export const HeritageMapPage: React.FC = () => {
       .catch((err) => console.log('Sử dụng dữ liệu làng nghề tiêu biểu cục bộ:', err));
   };
 
+  const loadMapLocations = () => {
+    apiClient.get('/map/locations')
+      .then((res: any) => {
+        if (res?.data && Array.isArray(res.data)) {
+          setMapLocations(res.data);
+        }
+      })
+      .catch((err) => console.log('Không thể tải điểm di sản phụ trợ:', err));
+  };
+
   useEffect(() => {
     loadVillages();
+    loadMapLocations();
   }, []);
 
   // 2. Khởi tạo Bản Đồ Tương Tác Leaflet (Google Maps & Vệ Tinh & OpenStreetMap)
@@ -145,79 +177,99 @@ export const HeritageMapPage: React.FC = () => {
     const map = L.map(mapContainerRef.current, {
       center: [16.0042, 107.5], // Giữa Việt Nam
       zoom: 6,
-      zoomControl: false, // Tắt zoom mặc định ở góc trên trái để không đè lên badge
-      attributionControl: false, // Tắt thanh attribution thô ở góc dưới phải
-      scrollWheelZoom: true, // Bật tính năng lăn chuột để phóng to / thu nhỏ bản đồ mượt mà
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: true,
       wheelDebounceTime: 40,
       wheelPxPerZoomLevel: 60
     });
+
+    // Cấu hình cử chỉ Gesture Handling trên màn hình cảm ứng di động (Rule 2)
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouchDevice) {
+      map.dragging.disable(); // Mặc định khóa 1 ngón để cuộn trang mượt mà không kẹt bản đồ
+    }
+
+    const container = mapContainerRef.current;
+    let gestureTimer: any = null;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        map.dragging.disable();
+        setShowGestureTooltip(true);
+        clearTimeout(gestureTimer);
+        gestureTimer = setTimeout(() => setShowGestureTooltip(false), 1800);
+      } else if (e.touches.length >= 2) {
+        map.dragging.enable();
+        setShowGestureTooltip(false);
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        map.dragging.disable();
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     // Gọi invalidateSize sau khi DOM sẵn sàng để render chuẩn tọa độ
     setTimeout(() => {
       map.invalidateSize();
     }, 250);
 
-    // Thêm nút Zoom ở góc dưới bên trái, tránh hoàn toàn va chạm giao diện
+    // Thêm nút Zoom ở góc dưới bên trái
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // 1. Bản đồ Google Maps Chuẩn (Mặc định): Sáng đẹp, màu sắc rực rỡ, quen thuộc, 100% tiếng Việt
+    // Các lớp bản đồ nền
     const googleRoadmapLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       attribution: '&copy; Google Maps',
       maxZoom: 20
     }).addTo(map);
 
-    // 2. Google Maps Vệ tinh Hybrid (Ảnh vệ tinh sắc nét + Tên đường làng xã tiếng Việt)
     const googleHybridLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
       attribution: '&copy; Google Maps Satellite',
       maxZoom: 20
     });
 
-    // 3. Google Maps Địa hình (Terrain 3D phong cảnh non nước)
     const googleTerrainLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
       attribution: '&copy; Google Maps Terrain',
       maxZoom: 20
     });
 
-    // 4. Bản đồ OpenStreetMap (OSM) chuẩn
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19
     });
 
-    // 5. Bản đồ Chi tiết ESRI
-    const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri',
-      maxZoom: 19
-    });
-
-    // Thêm bộ chuyển đổi lớp bản đồ trực quan góc phải
     const baseMaps = {
       'Bản đồ Google Maps': googleRoadmapLayer,
       'Google Vệ tinh (Hybrid)': googleHybridLayer,
       'Google Địa hình (Terrain)': googleTerrainLayer,
-      'Bản đồ OpenStreetMap': osmLayer,
-      'Bản đồ Chi tiết ESRI': esriStreetLayer
+      'Bản đồ OpenStreetMap': osmLayer
     };
+
     L.control.layers(baseMaps, undefined, { position: 'topright' }).addTo(map);
 
     mapInstanceRef.current = map;
 
     return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
 
-  // 3. Cập nhật các Marker/Pin lên Bản Đồ với Popup Thông Tin Chi Tiết Phong Phú
+  // 3. Cập nhật các Marker Làng nghề
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Xóa marker cũ
     Object.values(markersRef.current).forEach((m) => m.remove());
     markersRef.current = {};
 
-    // Tạo icon Marker di sản đỏ son đặc sắc
     const customIcon = L.divIcon({
       className: 'custom-heritage-pin',
       html: `
@@ -251,18 +303,18 @@ export const HeritageMapPage: React.FC = () => {
       const products = VILLAGE_PRODUCTS[v.slug] ? VILLAGE_PRODUCTS[v.slug].slice(0, 3).join(', ') : 'Sản phẩm thủ công truyền thống';
 
       const popupHtml = `
-        <div style="width: 280px; overflow: hidden; border-radius: 14px; font-family: 'Times New Roman', Times, serif; background: #ffffff;">
+        <div style="width: 280px; overflow: hidden; border-radius: 14px; font-family: Tahoma, sans-serif; background: #ffffff;">
           ${v.coverImageUrl ? `
             <div style="position: relative; width: 100%; height: 120px; overflow: hidden; background: #cbd5e1;">
               <img src="${v.coverImageUrl}" alt="${v.name}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
               <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);"></div>
               <span style="position: absolute; bottom: 8px; left: 8px; background: rgba(197, 48, 48, 0.95); color: #ffffff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
-                ✨ Di Sản Lâu Đời
+                ✨ Di Sản Làng Nghề
               </span>
             </div>
           ` : ''}
           <div style="padding: 12px 14px 14px 14px;">
-            <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: #1A365D; line-height: 1.25;">${v.name}</h3>
+            <h3 style="margin: 0; font-size: 15px; font-weight: bold; color: #1A365D; line-height: 1.25;">${v.name}</h3>
             <p style="margin: 3px 0 6px 0; font-size: 11px; color: #718096; display: flex; align-items: center; gap: 3px;">
               📍 ${v.province} • ${regionName}
             </p>
@@ -311,7 +363,115 @@ export const HeritageMapPage: React.FC = () => {
     });
   }, [villages]);
 
-  // 4. Khi chọn một làng nghề từ cột trái -> Bản đồ tự động FlyTo đến tọa độ và mở Popup chi tiết
+  // 4. Render các điểm vệ tinh di sản phụ trợ (Workshops, Checkin spots, Di tích)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    locationMarkersRef.current.forEach((m) => m.remove());
+    locationMarkersRef.current = [];
+
+    mapLocations.forEach((loc) => {
+      const isWorkshop = loc.category === 'WORKSHOP';
+      const isHistorical = loc.category === 'HISTORICAL_SITE';
+      const pinColor = isWorkshop ? '#1677ff' : isHistorical ? '#d97706' : '#059669';
+      const pinEmoji = isWorkshop ? '🛠️' : isHistorical ? '🏛️' : '📸';
+
+      const locIcon = L.divIcon({
+        className: 'custom-sublocation-pin',
+        html: `
+          <div style="
+            background-color: ${pinColor};
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+          ">
+            <div style="transform: rotate(45deg); font-size: 12px;">${pinEmoji}</div>
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28]
+      });
+
+      const locMarker = L.marker([loc.latitude, loc.longitude], { icon: locIcon }).addTo(map);
+
+      const locPopupHtml = `
+        <div style="width: 240px; font-family: Tahoma, sans-serif; padding: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span style="font-size: 10px; font-weight: bold; background: ${pinColor}; color: white; padding: 2px 6px; border-radius: 4px;">
+              ${isWorkshop ? 'XƯỞNG NGHỆ NHÂN' : isHistorical ? 'DI TÍCH LỊCH SỬ' : 'ĐIỂM CHECK-IN'}
+            </span>
+          </div>
+          <h4 style="margin: 0; font-size: 14px; font-weight: bold; color: #1A365D;">${loc.title}</h4>
+          <p style="margin: 4px 0 8px 0; font-size: 11px; color: #4A5568; line-height: 1.35;">${loc.description || ''}</p>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}" 
+             target="_blank" 
+             rel="noreferrer"
+             style="display: block; text-align: center; font-size: 10px; font-weight: bold; background: #f0f2f5; color: #1677ff; padding: 5px; border-radius: 4px; text-decoration: none; border: 1px solid #d9d9d9;">
+            📍 Dẫn đường tới điểm này
+          </a>
+        </div>
+      `;
+
+      locMarker.bindPopup(locPopupHtml, { maxWidth: 260, minWidth: 220 });
+      locationMarkersRef.current.push(locMarker);
+    });
+  }, [mapLocations]);
+
+  // 5. Tính năng "Vị trí của tôi" (GPS Locator)
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude, accuracy } = pos.coords;
+        const map = mapInstanceRef.current;
+        if (map) {
+          map.flyTo([latitude, longitude], 15, { duration: 1.5 });
+
+          if (userLocationMarkerRef.current) {
+            userLocationMarkerRef.current.remove();
+          }
+
+          userLocationMarkerRef.current = L.circleMarker([latitude, longitude], {
+            radius: 9,
+            fillColor: '#1677ff',
+            color: '#ffffff',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0.95
+          }).addTo(map);
+
+          userLocationMarkerRef.current.bindPopup(`
+            <div style="font-family: Tahoma, sans-serif; padding: 6px;">
+              <b style="color: #1677ff; font-size: 13px;">📍 Vị trí hiện tại của bạn</b>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: #666;">Độ chính xác: ±${Math.round(accuracy)}m</p>
+            </div>
+          `).openPopup();
+        }
+      },
+      (err) => {
+        setIsLocating(false);
+        alert('Không thể xác định vị trí GPS: ' + err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // 6. Khi chọn một làng nghề từ cột trái -> Bản đồ tự động FlyTo
   const handleSelectVillage = (village: CraftVillage) => {
     setSelectedVillage(village);
     const map = mapInstanceRef.current;
@@ -328,7 +488,7 @@ export const HeritageMapPage: React.FC = () => {
     }
   };
 
-  // 5. Bộ lọc chuẩn tiếng Việt có dấu
+  // 7. Bộ lọc vùng miền
   const REGION_TABS = [
     { key: 'ALL', label: 'Tất cả' },
     { key: 'Bac_Bo', label: 'Bắc Bộ' },
@@ -348,7 +508,7 @@ export const HeritageMapPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 font-serif">
-      {/* Header Bản Đồ Số: Trình bày thoáng đãng 2 dòng, tránh ép chữ */}
+      {/* Header Bản Đồ Số */}
       <div className="space-y-4 pb-4 border-b border-heritage-brass/30">
         <div>
           <span className="text-xs uppercase tracking-widest text-heritage-terracotta font-bold font-sans">
@@ -372,6 +532,14 @@ export const HeritageMapPage: React.FC = () => {
             >
               <Plus className="w-4 h-4" />
               <span>+ Nhập Liệu Di Sản</span>
+            </button>
+            <button
+              onClick={() => setIsProposeModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-heritage-indigo bg-emerald-50 hover:bg-emerald-100 transition-all border border-emerald-300 shadow-sm font-sans"
+              title="Đề xuất thêm điểm di sản hoặc check-in mới"
+            >
+              <MapPinned className="w-4 h-4 text-emerald-700" />
+              <span>Đề Xuất Điểm</span>
             </button>
             <button
               onClick={() => setIsUserModalOpen(true)}
@@ -405,7 +573,6 @@ export const HeritageMapPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* CỘT TRÁI: Tìm kiếm & Danh mục Làng nghề */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Ô Tìm Kiếm Nhanh */}
           <div className="bg-white p-4 rounded-xl border border-heritage-indigo/15 shadow-sm space-y-2">
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -427,7 +594,7 @@ export const HeritageMapPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Danh Sách Làng Nghề (Chiều cao đồng bộ với bản đồ) */}
+          {/* Danh Sách Làng Nghề */}
           <div className="space-y-3 max-h-[520px] lg:max-h-[580px] overflow-y-auto pr-1">
             {filteredVillages.length === 0 ? (
               <div className="p-8 bg-white rounded-xl border text-center text-gray-500 text-xs">
@@ -468,15 +635,36 @@ export const HeritageMapPage: React.FC = () => {
         {/* CỘT PHẢI: Bản Đồ Leaflet Tương Tác Kích Thước Lớn & Thẻ Thông Tin Chi Tiết */}
         <div className="lg:col-span-8 space-y-6">
           {/* 1. KHU VỰC BẢN ĐỒ TƯƠNG TÁC RỘNG RÃI */}
-          <div className="bg-white p-2 rounded-2xl border border-heritage-indigo/15 shadow-sm overflow-hidden">
+          <div className="bg-white p-2 rounded-2xl border border-heritage-indigo/15 shadow-sm overflow-hidden relative">
             <div className="relative h-[520px] lg:h-[580px] w-full rounded-xl overflow-hidden">
               <div ref={mapContainerRef} className="w-full h-full" />
               
               {/* Floating Map Overlay Info */}
               <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-heritage-indigo border border-heritage-indigo/15 shadow-md flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5 text-heritage-terracotta" />
-                <span>Bản Đồ Số Làng Nghề Di Sản • Nhấp ghim để xem thông tin chi tiết</span>
+                <span>Bản Đồ Số Làng Nghề Di Sản • Nhấp ghim để xem thông tin</span>
               </div>
+
+              {/* FAB: Nút Định vị GPS của tôi (Smooth FlyTo) */}
+              <button
+                onClick={handleLocateMe}
+                disabled={isLocating}
+                className="absolute bottom-4 right-4 z-[400] flex items-center gap-2 bg-heritage-indigo text-white px-3.5 py-2.5 rounded-full shadow-xl hover:bg-blue-950 transition-all font-sans text-xs font-bold border border-white/40 active:scale-95"
+                title="Định vị vị trí GPS hiện tại của tôi"
+              >
+                <Crosshair className={`w-4 h-4 text-emerald-400 ${isLocating ? 'animate-spin' : ''}`} />
+                <span>{isLocating ? 'Đang định vị...' : 'Vị trí của tôi'}</span>
+              </button>
+
+              {/* Overlay Cử chỉ Gesture Handling Mobile (Rule 2) */}
+              {showGestureTooltip && (
+                <div className="absolute inset-0 z-[500] pointer-events-none flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all">
+                  <div className="bg-white/95 text-heritage-indigo px-4 py-3 rounded-xl shadow-2xl border border-heritage-terracotta flex items-center gap-2.5 text-xs font-bold font-sans animate-bounce">
+                    <span className="text-xl">✌️</span>
+                    <span>Dùng hai ngón tay để di chuyển bản đồ</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -580,7 +768,7 @@ export const HeritageMapPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Nhập liệu Di sản / Làng nghề / Tác phẩm cho Client */}
+      {/* Modal Nhập liệu Di sản */}
       <HeritageDataEntryModal
         isOpen={isDataModalOpen}
         onClose={() => setIsDataModalOpen(false)}
@@ -591,7 +779,19 @@ export const HeritageMapPage: React.FC = () => {
         villages={villages}
       />
 
-      {/* Modal Quản lý Người Dùng & Cấp Quyền */}
+      {/* Modal Đề xuất Điểm Di sản (Sprint 3) */}
+      <ProposeLocationModal
+        isOpen={isProposeModalOpen}
+        onClose={() => setIsProposeModalOpen(false)}
+        onSuccess={() => {
+          setIsProposeModalOpen(false);
+          loadMapLocations();
+        }}
+        initialLat={selectedVillage?.latitude}
+        initialLng={selectedVillage?.longitude}
+      />
+
+      {/* Modal Quản lý Người Dùng */}
       <UserManagementModal
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}

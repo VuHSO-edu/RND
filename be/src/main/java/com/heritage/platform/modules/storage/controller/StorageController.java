@@ -27,6 +27,18 @@ public class StorageController {
         return ApiResponse.ok(response, "Tải video lên thành công");
     }
 
+    @PostMapping(value = "/media/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<FileUploadResponse> uploadMedia(@RequestParam("file") MultipartFile file) {
+        String contentType = file.getContentType();
+        FileUploadResponse response;
+        if (contentType != null && contentType.startsWith("video/")) {
+            response = storageService.uploadVideo(file);
+        } else {
+            response = storageService.uploadImage(file);
+        }
+        return ApiResponse.ok(response, "Tải tệp media lên thành công");
+    }
+
     @DeleteMapping
     public ApiResponse<String> deleteFile(@RequestParam("objectKey") String objectKey) {
         storageService.deleteFile(objectKey);

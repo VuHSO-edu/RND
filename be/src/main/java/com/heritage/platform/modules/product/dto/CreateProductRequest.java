@@ -12,7 +12,6 @@ public class CreateProductRequest {
     @NotBlank(message = "Tên tác phẩm không được để trống")
     private String name;
 
-    @NotBlank(message = "Mã/Slug sản phẩm không được để trống")
     private String slug;
 
     private Long artisanId;
@@ -32,7 +31,11 @@ public class CreateProductRequest {
 
     private Integer stockQuantity = 1;
 
+    private String skuCode;
+    private String artisanStory;
+    private String creationProcessVideoUrl;
+    private String status = "PENDING_APPROVAL";
+    private Long villageId;
     private String imageUrl;
-
     private String model3dUrl;
 }

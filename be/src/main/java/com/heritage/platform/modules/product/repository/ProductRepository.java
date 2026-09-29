@@ -24,5 +24,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @EntityGraph(attributePaths = {"artisan", "artisan.user", "artisan.craftVillage"})
     Optional<Product> findByIdAndIsDeletedFalse(Long id);
 
+    @EntityGraph(attributePaths = {"artisan", "artisan.user", "craftVillage"})
+    java.util.List<Product> findByArtisanIdAndIsDeletedFalse(Long artisanId);
+
+    @EntityGraph(attributePaths = {"artisan", "artisan.user", "craftVillage"})
+    java.util.List<Product> findByCraftVillageIdAndStatusAndIsDeletedFalse(Long craftVillageId, String status);
+
+    @EntityGraph(attributePaths = {"artisan", "artisan.user", "craftVillage"})
+    java.util.List<Product> findByCraftVillageIdAndIsDeletedFalse(Long craftVillageId);
+
     boolean existsBySlug(String slug);
 }
