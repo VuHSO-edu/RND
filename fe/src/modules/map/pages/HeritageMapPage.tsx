@@ -16,11 +16,16 @@ import {
   Users,
   Crosshair,
   MapPinned,
-  Landmark
+  Landmark,
+  Edit3,
+  Save
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { fetchVillages, CraftVillage } from '../../../services/heritageApi';
 import { Button } from '../../../components/ui/Button';
 import { HeritageDataEntryModal } from '../components/HeritageDataEntryModal';
+import { HeritageModal } from '../../../components/ui/HeritageModal';
+import { MapCoordinatePicker } from '../components/MapCoordinatePicker';
 import { UserManagementModal } from '../../gis/components/UserManagementModal';
 import { ProposeLocationModal } from '../components/ProposeLocationModal';
 import { apiClient } from '../../../services/apiClient';
@@ -125,6 +130,7 @@ export const HeritageMapPage: React.FC = () => {
   const { t } = useTranslation();
   const [villages, setVillages] = useState<CraftVillage[]>(FALLBACK_VILLAGES);
   const [selectedVillage, setSelectedVillage] = useState<CraftVillage>(FALLBACK_VILLAGES[0]);
+  const [villageProductsMap, setVillageProductsMap] = useState<Record<string, string[]>>(VILLAGE_PRODUCTS);
   const [mapLocations, setMapLocations] = useState<CustomLocation[]>([]);
   const [activeRegion, setActiveRegion] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
@@ -133,6 +139,24 @@ export const HeritageMapPage: React.FC = () => {
   const [isProposeModalOpen, setIsProposeModalOpen] = useState<boolean>(false);
   const [showGestureTooltip, setShowGestureTooltip] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  // State cho Modal/Form Chỉnh Sửa & Nhập Thông Tin Làng Nghề (Cả trên Thẻ Chi Tiết và Popup Bản Đồ)
+  const [isEditVillageModalOpen, setIsEditVillageModalOpen] = useState(false);
+  const [isNewVillageEntry, setIsNewVillageEntry] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    province: '',
+    region: 'Bac_Bo',
+    historicalSummary: '',
+    addressLine: '',
+    foundingYearEstimate: '1352',
+    latitude: '20.9781',
+    longitude: '105.9125',
+    products: '',
+    coverImageUrl: ''
+  });
+  const [editFormError, setEditFormError] = useState<string | null>(null);
+  const [isFormDirty, setIsFormDirty] = useState(false);
   
   // Leaflet Map References
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -140,6 +164,110 @@ export const HeritageMapPage: React.FC = () => {
   const markersRef = useRef<Record<number, L.Marker>>({});
   const locationMarkersRef = useRef<L.Marker[]>([]);
   const userLocationMarkerRef = useRef<L.CircleMarker | null>(null);
+
+  // Mở Form chỉnh sửa / nhập thông tin làng nghề
+  const handleOpenEditVillage = (village: CraftVillage, isNew = false) => {
+    setIsNewVillageEntry(isNew);
+    setEditFormError(null);
+    setIsFormDirty(false);
+
+    const prods = villageProductsMap[village.slug] || ['Sản phẩm thủ công truyền thống'];
+    const adminAddress = (village as any).addressLine || (
+      village.province === 'Hà Nội' && village.name.includes('Bát Tràng')
+        ? 'Xã Bát Tràng, Huyện Gia Lâm, Hà Nội'
+        : village.name.includes('Vạn Phúc')
+        ? 'Phường Vạn Phúc, Quận Hà Đông, Hà Nội'
+        : `${village.name}, ${village.province}`
+    );
+
+    setEditForm({
+      name: isNew ? '' : village.name,
+      province: village.province || 'Hà Nội',
+      region: village.region || 'Bac_Bo',
+      historicalSummary: isNew ? '' : (village.historicalSummary || ''),
+      addressLine: adminAddress,
+      foundingYearEstimate: String(village.foundingYearEstimate || 1352),
+      latitude: String(village.latitude || 20.9781),
+      longitude: String(village.longitude || 105.9125),
+      products: isNew ? 'Gốm sứ, Đồ thủ công' : prods.join(', '),
+      coverImageUrl: isNew 
+        ? 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=80' 
+        : (village.coverImageUrl || '')
+    });
+
+    setIsEditVillageModalOpen(true);
+  };
+
+  // Lưu thông tin làng nghề sau khi chỉnh sửa
+  const handleSaveVillage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setEditFormError(null);
+
+    const name = editForm.name.trim();
+    if (!name) {
+      setEditFormError('Vui lòng nhập tên làng nghề di sản.');
+      return;
+    }
+
+    const lat = parseFloat(editForm.latitude);
+    const lng = parseFloat(editForm.longitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      setEditFormError('Vĩ độ không hợp lệ. Vui lòng nhập trong khoảng [-90..90].');
+      return;
+    }
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      setEditFormError('Kinh độ không hợp lệ. Vui lòng nhập trong khoảng [-180..180].');
+      return;
+    }
+
+    const foundingYear = parseInt(editForm.foundingYearEstimate, 10);
+    if (isNaN(foundingYear) || foundingYear < 0 || foundingYear > 2026) {
+      setEditFormError('Thời gian khởi lập nghề không hợp lệ (nhập năm từ 0 đến 2026).');
+      return;
+    }
+
+    const slug = isNewVillageEntry 
+      ? name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-') 
+      : selectedVillage.slug;
+
+    const newVillageData: CraftVillage = {
+      id: isNewVillageEntry ? Date.now() : selectedVillage.id,
+      name,
+      slug,
+      province: editForm.province.trim(),
+      region: editForm.region,
+      historicalSummary: editForm.historicalSummary.trim(),
+      foundingYearEstimate: foundingYear,
+      latitude: lat,
+      longitude: lng,
+      coverImageUrl: editForm.coverImageUrl.trim() || 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=80',
+      ...({ addressLine: editForm.addressLine.trim() } as any)
+    };
+
+    // Cập nhật danh sách tác phẩm
+    const prodList = editForm.products.split(',').map((p) => p.trim()).filter(Boolean);
+    setVillageProductsMap((prev) => ({
+      ...prev,
+      [slug]: prodList.length > 0 ? prodList : ['Tác phẩm di sản thủ công']
+    }));
+
+    if (isNewVillageEntry) {
+      setVillages((prev) => [newVillageData, ...prev]);
+      setSelectedVillage(newVillageData);
+      toast.success('BHTT: Đã thêm mới làng nghề di sản thành công!');
+    } else {
+      setVillages((prev) => prev.map((v) => v.id === newVillageData.id ? newVillageData : v));
+      setSelectedVillage(newVillageData);
+      toast.success('BHTT: Đã lưu thông tin làng nghề thành công!');
+    }
+
+    // Bay tới vị trí marker mới trên bản đồ
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([lat, lng], 13, { duration: 1.2 });
+    }
+
+    setIsEditVillageModalOpen(false);
+  };
 
   // 1. Tải danh sách làng nghề và các điểm di sản vệ tinh từ API
   const loadVillages = () => {
@@ -222,7 +350,7 @@ export const HeritageMapPage: React.FC = () => {
     // Thêm nút Zoom ở góc dưới bên trái
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // Các lớp bản đồ nền
+    // Các lớp bản đồ nền - Sử dụng Google Maps làm mặc định
     const googleRoadmapLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       attribution: '&copy; Google Maps',
       maxZoom: 20
@@ -252,6 +380,30 @@ export const HeritageMapPage: React.FC = () => {
 
     L.control.layers(baseMaps, undefined, { position: 'topright' }).addTo(map);
 
+    // Click vào bất kỳ vị trí nào trên bản đồ để thêm hoặc chọn tọa độ điểm mới
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      const clickPopupHtml = `
+        <div style="font-family: Tahoma, sans-serif; padding: 6px 10px; text-align: center; min-width: 220px;">
+          <div style="font-size: 11px; font-weight: bold; color: #1C2D37; margin-bottom: 4px;">
+            📍 Tọa độ GPS đã chọn
+          </div>
+          <div style="font-size: 10px; color: #687782; font-family: monospace; margin-bottom: 8px;">
+            ${lat.toFixed(4)}, ${lng.toFixed(4)}
+          </div>
+          <button onclick="window.createNewVillageAtCoords(${lat}, ${lng})"
+                  style="width: 100%; font-size: 11px; font-weight: bold; background: #8B1E1E; color: #ffffff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 6px rgba(139,30,30,0.25);">
+            <span>➕ Nhập Thông Tin Làng Nghề Tại Đây</span>
+          </button>
+        </div>
+      `;
+      L.popup()
+        .setLatLng(e.latlng)
+        .setContent(clickPopupHtml)
+        .openOn(map);
+    });
+
     mapInstanceRef.current = map;
 
     return () => {
@@ -261,6 +413,38 @@ export const HeritageMapPage: React.FC = () => {
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Đăng ký các hàm toàn cục xử lý sự kiện click trên Popup HTML của Leaflet
+  useEffect(() => {
+    (window as any).editVillageModal = (villageId: number) => {
+      const target = villages.find((item) => item.id === villageId);
+      if (target) {
+        setSelectedVillage(target);
+        handleOpenEditVillage(target, false);
+      }
+    };
+
+    (window as any).createNewVillageAtCoords = (lat: number, lng: number) => {
+      const draftVillage: CraftVillage = {
+        id: Date.now(),
+        name: '',
+        slug: 'lang-nghe-moi',
+        region: 'Bac_Bo',
+        province: 'Hà Nội',
+        historicalSummary: '',
+        foundingYearEstimate: 1500,
+        latitude: lat,
+        longitude: lng,
+        coverImageUrl: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=80'
+      };
+      handleOpenEditVillage(draftVillage, true);
+    };
+
+    return () => {
+      delete (window as any).editVillageModal;
+      delete (window as any).createNewVillageAtCoords;
+    };
+  }, [villages, villageProductsMap]);
 
   // 3. Cập nhật các Marker Làng nghề
   useEffect(() => {
@@ -300,48 +484,48 @@ export const HeritageMapPage: React.FC = () => {
 
       const regionName = v.region === 'Bac_Bo' ? 'Đồng Bằng Bắc Bộ' : v.region === 'Trung_Bo' ? 'Duyên Hải Miền Trung' : 'Nam Bộ';
       const age = v.foundingYearEstimate ? 2026 - v.foundingYearEstimate : 500;
-      const products = VILLAGE_PRODUCTS[v.slug] ? VILLAGE_PRODUCTS[v.slug].slice(0, 3).join(', ') : 'Sản phẩm thủ công truyền thống';
+      const products = (villageProductsMap[v.slug] || VILLAGE_PRODUCTS[v.slug] || ['Sản phẩm thủ công truyền thống']).slice(0, 3).join(', ');
 
       const popupHtml = `
-        <div style="width: 280px; overflow: hidden; border-radius: 14px; font-family: Tahoma, sans-serif; background: #ffffff;">
+        <div style="width: 290px; overflow: hidden; border-radius: 14px; font-family: Tahoma, sans-serif; background: #ffffff;">
           ${v.coverImageUrl ? `
             <div style="position: relative; width: 100%; height: 120px; overflow: hidden; background: #cbd5e1;">
               <img src="${v.coverImageUrl}" alt="${v.name}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
               <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);"></div>
-              <span style="position: absolute; bottom: 8px; left: 8px; background: rgba(197, 48, 48, 0.95); color: #ffffff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+              <span style="position: absolute; bottom: 8px; left: 8px; background: rgba(139, 30, 30, 0.95); color: #ffffff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
                 ✨ Di Sản Làng Nghề
               </span>
             </div>
           ` : ''}
           <div style="padding: 12px 14px 14px 14px;">
-            <h3 style="margin: 0; font-size: 15px; font-weight: bold; color: #1A365D; line-height: 1.25;">${v.name}</h3>
-            <p style="margin: 3px 0 6px 0; font-size: 11px; color: #718096; display: flex; align-items: center; gap: 3px;">
+            <h3 style="margin: 0; font-size: 15px; font-weight: bold; color: #1C2D37; line-height: 1.25;">${v.name}</h3>
+            <p style="margin: 3px 0 6px 0; font-size: 11px; color: #687782; display: flex; align-items: center; gap: 3px;">
               📍 ${v.province} • ${regionName}
             </p>
 
-            <div style="margin: 7px 0; padding: 6px 10px; background: #FBF9F5; border-left: 3px solid #C53030; border-radius: 4px;">
-              <div style="font-size: 11px; font-weight: bold; color: #C53030;">
+            <div style="margin: 7px 0; padding: 6px 10px; background: #FDFBF7; border-left: 3px solid #8B1E1E; border-radius: 4px; border-top: 1px solid #E8DEC8; border-right: 1px solid #E8DEC8; border-bottom: 1px solid #E8DEC8;">
+              <div style="font-size: 11px; font-weight: bold; color: #8B1E1E;">
                 Niên đại: Khởi lập ~${v.foundingYearEstimate} (Hơn ${age} năm)
               </div>
-              <div style="font-size: 11px; color: #4A5568; margin-top: 3px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              <div style="font-size: 11px; color: #2D3748; margin-top: 3px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                 ${v.historicalSummary || 'Làng nghề di sản truyền thống tiêu biểu của dân tộc.'}
               </div>
             </div>
 
-            <div style="margin: 6px 0 10px 0; font-size: 11px; color: #4A5568; line-height: 1.35;">
-              <strong style="color: #1A365D;">Tác phẩm tiêu biểu:</strong> ${products}
+            <div style="margin: 6px 0 10px 0; font-size: 11px; color: #2D3748; line-height: 1.35;">
+              <strong style="color: #1C2D37;">Tác phẩm tiêu biểu:</strong> ${products}
             </div>
 
-            <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <div style="display: flex; gap: 6px; margin-top: 10px;">
               <a href="https://www.google.com/maps/dir/?api=1&destination=${v.latitude},${v.longitude}" 
                  target="_blank" 
                  rel="noreferrer"
-                 style="flex: 1; text-align: center; font-size: 11px; font-weight: bold; background: #1A365D; color: #ffffff; padding: 7px 10px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 6px rgba(26,54,93,0.25);">
+                 style="flex: 1; text-align: center; font-size: 11px; font-weight: bold; background: #1C2D37; color: #ffffff; padding: 7px 6px; border-radius: 6px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 3px;">
                 <span>📍 Chỉ đường</span>
               </a>
-              <button onclick="document.getElementById('village-detail-card')?.scrollIntoView({ behavior: 'smooth' })"
-                      style="font-size: 11px; font-weight: bold; background: #FFF5F5; color: #C53030; border: 1px solid #FEB2B2; padding: 7px 12px; border-radius: 6px; cursor: pointer;">
-                Chi tiết ↓
+              <button onclick="window.editVillageModal(${v.id})"
+                      style="flex: 1; font-size: 11px; font-weight: bold; background: #8B1E1E; color: #ffffff; border: 1px solid #5c1010; padding: 7px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 3px; box-shadow: 0 2px 6px rgba(139,30,30,0.25);">
+                <span>✏️ Sửa Điểm Này</span>
               </button>
             </div>
           </div>
@@ -361,7 +545,7 @@ export const HeritageMapPage: React.FC = () => {
 
       markersRef.current[v.id] = marker;
     });
-  }, [villages]);
+  }, [villages, villageProductsMap]);
 
   // 4. Render các điểm vệ tinh di sản phụ trợ (Workshops, Checkin spots, Di tích)
   useEffect(() => {
@@ -640,8 +824,8 @@ export const HeritageMapPage: React.FC = () => {
               <div ref={mapContainerRef} className="w-full h-full" />
               
               {/* Floating Map Overlay Info */}
-              <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-heritage-indigo border border-heritage-indigo/15 shadow-md flex items-center gap-2">
-                <Layers className="w-3.5 h-3.5 text-heritage-terracotta" />
+              <div className="absolute top-3 left-3 z-[400] bg-heritage-paper/95 backdrop-blur-md px-4 py-2 rounded-full text-xs font-semibold text-heritage-indigo border border-heritage-border shadow-heritage-card flex items-center gap-2">
+                <Layers className="w-3.5 h-3.5 text-heritage-red" />
                 <span>Bản Đồ Số Làng Nghề Di Sản • Nhấp ghim để xem thông tin</span>
               </div>
 
@@ -649,10 +833,10 @@ export const HeritageMapPage: React.FC = () => {
               <button
                 onClick={handleLocateMe}
                 disabled={isLocating}
-                className="absolute bottom-4 right-4 z-[400] flex items-center gap-2 bg-heritage-indigo text-white px-3.5 py-2.5 rounded-full shadow-xl hover:bg-blue-950 transition-all font-sans text-xs font-bold border border-white/40 active:scale-95"
+                className="absolute bottom-4 right-4 z-[400] flex items-center gap-2 bg-heritage-red hover:bg-heritage-hoverRed text-white px-4 py-2.5 rounded-full shadow-lg shadow-heritage-red/25 hover:shadow-xl transition-all font-sans text-xs font-bold border border-white/30 active:scale-95"
                 title="Định vị vị trí GPS hiện tại của tôi"
               >
-                <Crosshair className={`w-4 h-4 text-emerald-400 ${isLocating ? 'animate-spin' : ''}`} />
+                <Crosshair className={`w-4 h-4 text-heritage-gold ${isLocating ? 'animate-spin' : ''}`} />
                 <span>{isLocating ? 'Đang định vị...' : 'Vị trí của tôi'}</span>
               </button>
 
@@ -686,29 +870,52 @@ export const HeritageMapPage: React.FC = () => {
                     <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                     Đã Số Hóa Di Sản
                   </span>
+
+                  {/* Nút bấm Nhập / Chỉnh sửa thông tin ngay trên Thẻ chi tiết */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditVillage(selectedVillage, false)}
+                    style={{ backgroundColor: '#8B1E1E', color: '#FFFFFF', borderColor: '#5c1010' }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow hover:brightness-110 active:scale-95 transition-all cursor-pointer border-2 font-sans"
+                    title="Nhập và chỉnh sửa thông tin làng nghề"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-heritage-gold" />
+                    <span>✏️ Chỉnh Sửa Thông Tin</span>
+                  </button>
                 </div>
               </div>
 
               {/* Lịch sử lập làng */}
               <div>
-                <h4 className="text-xs uppercase font-bold text-heritage-terracotta tracking-wider mb-1.5">
-                  Lịch Sử Khởi Dựng &amp; Hồn Cốt Nghề Cổ Truyền
-                </h4>
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h4 className="text-xs uppercase font-bold text-heritage-terracotta tracking-wider">
+                    Lịch Sử Khởi Dựng &amp; Hồn Cốt Nghề Cổ Truyền
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditVillage(selectedVillage, false)}
+                    className="text-xs font-bold text-heritage-indigo hover:text-heritage-red flex items-center gap-1 transition-colors"
+                  >
+                    <Edit3 className="w-3 h-3" /> Sửa lịch sử
+                  </button>
+                </div>
+                <p className="text-sm text-gray-700 leading-relaxed font-sans">
                   {selectedVillage.historicalSummary}
                 </p>
               </div>
 
               {/* Địa chỉ thực tế & Chỉ đường Google Maps */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs font-sans">
                 <div className="space-y-1">
                   <span className="text-gray-500 block font-sans">Địa chỉ hành chính:</span>
                   <span className="font-bold text-heritage-indigo text-sm block">
-                    {selectedVillage.province === 'Hà Nội' && selectedVillage.name.includes('Bát Tràng')
-                      ? 'Xã Bát Tràng, Huyện Gia Lâm, Hà Nội'
-                      : selectedVillage.name.includes('Vạn Phúc')
-                      ? 'Phường Vạn Phúc, Quận Hà Đông, Hà Nội'
-                      : `${selectedVillage.name}, ${selectedVillage.province}`}
+                    {(selectedVillage as any).addressLine || (
+                      selectedVillage.province === 'Hà Nội' && selectedVillage.name.includes('Bát Tràng')
+                        ? 'Xã Bát Tràng, Huyện Gia Lâm, Hà Nội'
+                        : selectedVillage.name.includes('Vạn Phúc')
+                        ? 'Phường Vạn Phúc, Quận Hà Đông, Hà Nội'
+                        : `${selectedVillage.name}, ${selectedVillage.province}`
+                    )}
                   </span>
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${selectedVillage.latitude},${selectedVillage.longitude}`}
@@ -733,14 +940,23 @@ export const HeritageMapPage: React.FC = () => {
               </div>
 
               {/* Tag Sản phẩm tiêu biểu của làng */}
-              {VILLAGE_PRODUCTS[selectedVillage.slug] && (
+              {(villageProductsMap[selectedVillage.slug] || VILLAGE_PRODUCTS[selectedVillage.slug]) && (
                 <div className="space-y-2">
-                  <span className="text-xs uppercase font-bold text-gray-500 tracking-wider flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-heritage-indigo" />
-                    Các Tác Phẩm Tiêu Biểu Của Làng Nghề:
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-wider flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-heritage-indigo" />
+                      Các Tác Phẩm Tiêu Biểu Của Làng Nghề:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditVillage(selectedVillage, false)}
+                      className="text-xs font-bold text-heritage-indigo hover:text-heritage-red flex items-center gap-1 transition-colors"
+                    >
+                      <Edit3 className="w-3 h-3" /> Thêm / Sửa Tác Phẩm
+                    </button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    {VILLAGE_PRODUCTS[selectedVillage.slug].map((prodName, i) => (
+                    {(villageProductsMap[selectedVillage.slug] || VILLAGE_PRODUCTS[selectedVillage.slug] || []).map((prodName, i) => (
                       <span
                         key={i}
                         className="px-3 py-1 rounded-lg bg-heritage-paper text-heritage-indigo text-xs font-semibold border border-heritage-brass/30 shadow-sm"
@@ -758,15 +974,235 @@ export const HeritageMapPage: React.FC = () => {
                   <Navigation className="w-4 h-4" />
                   Xem Các Tác Phẩm Của Làng
                 </Button>
-                <Button variant="secondary" className="gap-2">
-                  <Calendar className="w-4 h-4 text-heritage-terracotta" />
-                  Đặt Tour Trải Nghiệm Thực Tế
+                <Button 
+                  type="button"
+                  variant="secondary" 
+                  className="gap-2"
+                  onClick={() => handleOpenEditVillage(selectedVillage, false)}
+                >
+                  <Edit3 className="w-4 h-4 text-heritage-terracotta" />
+                  Chỉnh Sửa Dữ Liệu Làng Này
                 </Button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Modal Nhập Liệu & Chỉnh Sửa Thông Tin Làng Nghề (Đạt Chuẩn BHTT Global Rules) */}
+      <HeritageModal
+        isOpen={isEditVillageModalOpen}
+        onClose={() => setIsEditVillageModalOpen(false)}
+        title={isNewVillageEntry ? 'THÊM MỚI ĐIỂM DI SẢN LÀNG NGHỀ' : `CHỈNH SỬA THÔNG TIN: ${selectedVillage?.name || ''}`}
+        subtitle="Thông tin sẽ được cập nhật đồng bộ lên Thẻ Di Sản và Popup trên Bản Đồ"
+        isDirty={isFormDirty}
+        maxWidth="2xl"
+      >
+        <form onSubmit={handleSaveVillage} className="space-y-4 font-sans text-xs">
+          {editFormError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-bold flex items-center gap-2">
+              <span>● BHTT:</span>
+              <span>{editFormError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+                Tên Làng Nghề Di Sản <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={editForm.name}
+                onChange={(e) => {
+                  setEditForm({ ...editForm, name: e.target.value });
+                  setIsFormDirty(true);
+                }}
+                placeholder="VD: Làng Gốm Bát Tràng"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] font-medium focus:border-heritage-red focus:ring-2 focus:ring-heritage-red/15 text-[13px]"
+                style={{ fontFamily: 'Tahoma, sans-serif' }}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+                Tỉnh / Thành Phố <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={editForm.province}
+                onChange={(e) => {
+                  setEditForm({ ...editForm, province: e.target.value });
+                  setIsFormDirty(true);
+                }}
+                placeholder="VD: Hà Nội, Bắc Ninh, Ninh Thuận..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] font-medium text-[13px]"
+                style={{ fontFamily: 'Tahoma, sans-serif' }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+                Vùng Miền <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={editForm.region}
+                onChange={(e) => {
+                  setEditForm({ ...editForm, region: e.target.value });
+                  setIsFormDirty(true);
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] font-medium text-[13px]"
+                style={{ fontFamily: 'Tahoma, sans-serif' }}
+              >
+                <option value="Bac_Bo">Đồng Bằng Bắc Bộ</option>
+                <option value="Trung_Bo">Duyên Hải Miền Trung &amp; Tây Nguyên</option>
+                <option value="Nam_Bo">Nam Bộ</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+                Năm Khởi Lập Nghề (Ước Lượng) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                value={editForm.foundingYearEstimate}
+                onChange={(e) => {
+                  setEditForm({ ...editForm, foundingYearEstimate: e.target.value });
+                  setIsFormDirty(true);
+                }}
+                placeholder="VD: 1352"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] font-medium text-[13px]"
+                style={{ fontFamily: 'Tahoma, sans-serif' }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+              Địa Chỉ Hành Chính Thực Tế
+            </label>
+            <input
+              type="text"
+              value={editForm.addressLine}
+              onChange={(e) => {
+                setEditForm({ ...editForm, addressLine: e.target.value });
+                setIsFormDirty(true);
+              }}
+              placeholder="VD: Xã Bát Tràng, Huyện Gia Lâm, Hà Nội"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] font-medium text-[13px]"
+              style={{ fontFamily: 'Tahoma, sans-serif' }}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+              Lịch Sử Khởi Dựng &amp; Hồn Cốt Nghề Cổ Truyền <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              required
+              value={editForm.historicalSummary}
+              onChange={(e) => {
+                setEditForm({ ...editForm, historicalSummary: e.target.value });
+                setIsFormDirty(true);
+              }}
+              placeholder="Mô tả nguồn gốc lịch sử, bí quyết kỹ nghệ cổ truyền của làng nghề..."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] font-medium leading-relaxed text-[13px]"
+              style={{ fontFamily: 'Tahoma, sans-serif' }}
+            />
+          </div>
+
+          {/* Bản đồ chọn vị trí trực quan để lấy Vĩ độ & Kinh độ tự động */}
+          <MapCoordinatePicker
+            latitude={editForm.latitude}
+            longitude={editForm.longitude}
+            onChange={(newLat, newLng) => {
+              setEditForm((prev) => ({
+                ...prev,
+                latitude: String(newLat),
+                longitude: String(newLng)
+              }));
+              setIsFormDirty(true);
+            }}
+            label="Chọn Vị Trí Làng Nghề Trên Bản Đồ (Lấy Tọa Độ Tự Động)"
+            helperText="Nhấp chuột vào bất cứ đâu trên bản đồ nhỏ hoặc kéo ghim đỏ để cập nhật Vĩ độ và Kinh độ chính xác"
+          />
+
+          <div className="space-y-1">
+            <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+              Các Tác Phẩm Tiêu Biểu (Cách nhau bằng dấu phẩy)
+            </label>
+            <input
+              type="text"
+              value={editForm.products}
+              onChange={(e) => {
+                setEditForm({ ...editForm, products: e.target.value });
+                setIsFormDirty(true);
+              }}
+              placeholder="VD: Lục bình men rạn, Ấm chén tử sa, Bình hút lộc hoa lam"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] text-[13px]"
+              style={{ fontFamily: 'Tahoma, sans-serif' }}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-bold text-[#000000] text-[13px] block" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+              URL Ảnh Bìa / Hiện Vật Làng Nghề
+            </label>
+            <input
+              type="text"
+              value={editForm.coverImageUrl}
+              onChange={(e) => {
+                setEditForm({ ...editForm, coverImageUrl: e.target.value });
+                setIsFormDirty(true);
+              }}
+              placeholder="https://images.unsplash.com/..."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-heritage-border bg-white text-[#1677ff] text-[13px]"
+              style={{ fontFamily: 'Tahoma, sans-serif' }}
+            />
+          </div>
+
+          {/* 2 Nút chuẩn quy tắc BHTT: LƯU DỮ LIỆU và THOÁT */}
+          <div className="pt-4 border-t border-heritage-border flex items-center justify-end gap-3 font-sans">
+            <button
+              type="button"
+              onClick={() => {
+                if (isFormDirty) {
+                  if (window.confirm('Dữ liệu đã bị thay đổi. Bạn có muốn thoát không?')) {
+                    setIsEditVillageModalOpen(false);
+                  }
+                } else {
+                  setIsEditVillageModalOpen(false);
+                }
+              }}
+              className="px-6 py-2.5 rounded-xl border border-heritage-border text-stone-700 font-bold hover:bg-stone-100 transition-all text-[13px]"
+              style={{ fontFamily: 'Tahoma, sans-serif' }}
+            >
+              THOÁT
+            </button>
+
+            <button
+              type="submit"
+              style={{
+                backgroundColor: '#1677ff',
+                color: '#ffffff',
+                fontFamily: 'Tahoma, sans-serif'
+              }}
+              className="px-8 py-2.5 rounded-xl font-bold text-[13px] shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Save className="w-4 h-4 text-white" />
+              <span>LƯU DỮ LIỆU</span>
+            </button>
+          </div>
+        </form>
+      </HeritageModal>
 
       {/* Modal Nhập liệu Di sản */}
       <HeritageDataEntryModal

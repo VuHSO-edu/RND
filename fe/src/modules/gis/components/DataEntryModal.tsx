@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { CreatePowerAssetRequest, OrgUnit } from '../../../services/gisApi';
+import { MapCoordinatePicker } from '../../map/components/MapCoordinatePicker';
 
 interface DataEntryModalProps {
   isOpen: boolean;
@@ -154,7 +155,7 @@ export const DataEntryModal: React.FC<DataEntryModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {/* Nhóm tài sản */}
             <div>
               <label className="block text-black font-semibold mb-1">
@@ -188,9 +189,7 @@ export const DataEntryModal: React.FC<DataEntryModalProps> = ({
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-4">
             {/* Cấp điện áp */}
             <div>
               <label className="block text-black font-semibold mb-1">
@@ -208,35 +207,19 @@ export const DataEntryModal: React.FC<DataEntryModalProps> = ({
                 <option value="22kV">22kV</option>
               </select>
             </div>
-
-            {/* Vĩ độ */}
-            <div>
-              <label className="block text-black font-semibold mb-1">
-                Vĩ độ (Lat) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.0001"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] text-right focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-              />
-            </div>
-
-            {/* Kinh độ */}
-            <div>
-              <label className="block text-black font-semibold mb-1">
-                Kinh độ (Lng) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.0001"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] text-right focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-              />
-            </div>
           </div>
+
+          {/* Chọn Tọa Độ Trên Bản Đồ */}
+          <MapCoordinatePicker
+            latitude={latitude}
+            longitude={longitude}
+            onChange={(newLat, newLng) => {
+              setLatitude(String(newLat));
+              setLongitude(String(newLng));
+            }}
+            label="Tọa Độ Vị Trí Thiết Bị (Chọn trên bản đồ)"
+            helperText="Nhấp vào bản đồ hoặc kéo ghim đỏ để chọn vị trí tài sản chính xác."
+          />
 
           {/* Ghi chú */}
           <div>

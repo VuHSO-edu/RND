@@ -1,4 +1,7 @@
 services:
+  # ==========================================
+  # 1. DATABASE: PostgreSQL 16 + PostGIS
+  # ==========================================
   postgres:
     image: postgis/postgis:16-3.4-alpine
     container_name: heritage_postgres
@@ -16,7 +19,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - heritage_net
 
+  # ==========================================
+  # 2. OBJECT STORAGE: MinIO S3
+  # ==========================================
   minio:
     image: cgr.dev/chainguard/minio:latest
     container_name: heritage_minio
@@ -26,13 +34,64 @@ services:
       MINIO_ROOT_USER: heritage_admin
       MINIO_ROOT_PASSWORD: HeritageMinio@2026
     ports:
-      - "9000:9000"   # S3 API
+      - "9000:9000"   # S3 Storage API
       - "9001:9001"   # MinIO Web Console Dashboard
     volumes:
       - minio_data:/data
+    networks:
+      - heritage_net
+
+  # ==========================================
+  # 3. BACKEND: Spring Boot 3.3 (Java 21)
+  # ==========================================
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: heritage_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/heritagedb
+      SPRING_DATASOURCE_USERNAME: heritage_user
+      SPRING_DATASOURCE_PASSWORD: HeritagePassword@2026
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: heritage_admin
+      MINIO_SECRET_KEY: HeritageMinio@2026
+      MINIO_BUCKET_NAME: heritage-media
+      MINIO_PUBLIC_URL_PREFIX: http://localhost:9000/heritage-media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - heritage_net
+
+  # ==========================================
+  # 4. FRONTEND: React + Vite + Nginx Reverse Proxy
+  # ==========================================
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: heritage_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"     # Giao diện chính: http://localhost:3000
+      - "80:80"       # Cổng HTTP tiêu chuẩn: http://localhost
+    depends_on:
+      - backend
+    networks:
+      - heritage_net
 
 volumes:
   postgres_data:
     driver: local
   minio_data:
     driver: local
+
+networks:
+  heritage_net:
+    driver: bridge

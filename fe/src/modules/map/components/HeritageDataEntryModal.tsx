@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, UploadCloud } from 'lucide-react';
+import { Save, AlertCircle, Sparkles, Layers, Landmark } from 'lucide-react';
 import { CraftVillage, createVillage, createProduct } from '../../../services/heritageApi';
 import { uploadImageToMinio } from '../../../services/storageApi';
+import { HeritageModal } from '../../../components/ui/HeritageModal';
+import { ImageUploadDropzone } from '../../../components/ui/ImageUploadDropzone';
+import { Input } from '../../../components/ui/Input';
+import { Button } from '../../../components/ui/Button';
+import { MapCoordinatePicker } from './MapCoordinatePicker';
 
 interface HeritageDataEntryModalProps {
   isOpen: boolean;
@@ -21,6 +26,7 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
   const [mode, setMode] = useState<'PRODUCT' | 'VILLAGE'>(initialMode);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
 
   // Fields cho Tác phẩm (PRODUCT)
   const [prodName, setProdName] = useState('');
@@ -50,6 +56,7 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
     if (isOpen) {
       setMode(initialMode);
       setErrorMsg('');
+      setIsDirty(false);
       setProdName('');
       setProdSlug('');
       setVName('');
@@ -58,19 +65,17 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
     }
   }, [isOpen, initialMode, villages]);
 
-  if (!isOpen) return null;
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleDropzoneFileReady = async (compressedFile: File) => {
     try {
+      setIsDirty(true);
       setUploadingImage(true);
       setUploadPercent(0);
-      const res = await uploadImageToMinio(file, (p) => setUploadPercent(p));
+      const res = await uploadImageToMinio(compressedFile, (percent) => {
+        setUploadPercent(percent);
+      });
       setImageUrl(res.fileUrl);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi khi tải ảnh lên MinIO');
+      setErrorMsg(err.message || 'Lỗi khi tải ảnh lên máy chủ MinIO');
     } finally {
       setUploadingImage(false);
       setUploadPercent(null);
@@ -133,6 +138,7 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
         });
       }
 
+      setIsDirty(false);
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -143,292 +149,290 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-      <div 
-        className="bg-white rounded-lg shadow-2xl w-full max-w-xl overflow-hidden border border-gray-200"
-        style={{ fontFamily: 'Tahoma, sans-serif' }}
-      >
-        {/* Header 56px cố định chuẩn quy tắc */}
-        <div className="h-14 px-6 bg-[#1677ff] flex items-center justify-between text-white shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm tracking-wide">BHTT</span>
-            <span className="text-white/60">•</span>
-            <h3 className="font-bold text-sm">
-              {mode === 'PRODUCT' ? 'THÊM MỚI TÁC PHẨM DI SẢN' : 'THÊM MỚI LÀNG NGHỀ TRUYỀN THỐNG'}
-            </h3>
+    <HeritageModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={mode === 'PRODUCT' ? 'THÊM MỚI TÁC PHẨM DI SẢN' : 'THÊM MỚI LÀNG NGHỀ TRUYỀN THỐNG'}
+      subtitle={mode === 'PRODUCT' ? 'Số hóa kiệt tác thủ công mỹ nghệ vào kho di sản' : 'Bổ sung nôi văn hóa làng nghề truyền thống vào bản đồ số'}
+      isDirty={isDirty}
+      maxWidth="2xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Thanh chọn Tab kiểu thẻ cổ điển Neo-Heritage */}
+        <div className="flex items-center gap-2 p-1.5 bg-heritage-surface rounded-xl border border-heritage-border">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('PRODUCT');
+              setErrorMsg('');
+            }}
+            className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+              mode === 'PRODUCT'
+                ? 'bg-heritage-red text-white shadow-sm'
+                : 'text-heritage-indigo hover:text-heritage-red hover:bg-white/60'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Nhập Tác phẩm Di sản</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode('VILLAGE');
+              setErrorMsg('');
+            }}
+            className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+              mode === 'VILLAGE'
+                ? 'bg-heritage-red text-white shadow-sm'
+                : 'text-heritage-indigo hover:text-heritage-red hover:bg-white/60'
+            }`}
+          >
+            <Landmark className="w-3.5 h-3.5" />
+            <span>Nhập Làng nghề Mới</span>
+          </button>
+        </div>
+
+        {/* Thông báo lỗi */}
+        {errorMsg && (
+          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+            <span className="font-medium">{errorMsg}</span>
           </div>
-          <button 
-            onClick={onClose} 
-            className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        )}
 
-        {/* Tab chọn loại nhập liệu */}
-        <div className="flex border-b bg-gray-100 text-xs font-bold px-6 pt-2">
-          <button
-            type="button"
-            onClick={() => setMode('PRODUCT')}
-            className={`py-2 px-4 rounded-t border-t border-x transition-all ${
-              mode === 'PRODUCT' ? 'bg-white text-[#1677ff] border-gray-200 -mb-px' : 'text-gray-600 hover:text-black border-transparent'
-            }`}
-          >
-            Nhập Tác phẩm Di sản
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('VILLAGE')}
-            className={`py-2 px-4 rounded-t border-t border-x transition-all ${
-              mode === 'VILLAGE' ? 'bg-white text-[#1677ff] border-gray-200 -mb-px' : 'text-gray-600 hover:text-black border-transparent'
-            }`}
-          >
-            Nhập Làng nghề Mới
-          </button>
-        </div>
+        {mode === 'PRODUCT' ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Tên tác phẩm di sản"
+                required
+                placeholder="VD: Lục Bình Men Rạn Bát Tràng"
+                value={prodName}
+                onChange={(e) => {
+                  setProdName(e.target.value);
+                  setIsDirty(true);
+                }}
+                autoFocus
+              />
 
-        {/* Body Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-[#f0f2f5] text-[13px] max-h-[75vh] overflow-y-auto">
-          {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-600 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
+              <Input
+                label="Mã / Slug định danh"
+                required
+                placeholder="VD: luc-binh-men-ran"
+                value={prodSlug}
+                onChange={(e) => {
+                  setProdSlug(e.target.value);
+                  setIsDirty(true);
+                }}
+              />
             </div>
-          )}
 
-          {mode === 'PRODUCT' ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-semibold mb-1">
-                    Tên tác phẩm <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="VD: Lục Bình Men Rạn Bát Tràng"
-                    value={prodName}
-                    onChange={(e) => setProdName(e.target.value)}
-                    autoFocus
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-black font-semibold mb-1">
-                    Mã/Slug định danh <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="VD: luc-binh-men-ran"
-                    value={prodSlug}
-                    onChange={(e) => setProdSlug(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-sans font-semibold text-heritage-indigo">
+                  Làng nghề chế tác
+                </label>
+                <select
+                  value={villageId}
+                  onChange={(e) => {
+                    setVillageId(parseInt(e.target.value));
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-[13px] font-sans rounded-xl border border-heritage-border bg-white text-heritage-indigo focus:border-heritage-red focus:ring-2 focus:ring-heritage-red/15 transition-all shadow-sm"
+                >
+                  {villages.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.province})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-semibold mb-1">Làng nghề chế tác</label>
-                  <select
-                    value={villageId}
-                    onChange={(e) => setVillageId(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  >
-                    {villages.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.province})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <Input
+                label="Giá tác phẩm (VNĐ)"
+                type="number"
+                value={price}
+                onChange={(e) => {
+                  setPrice(e.target.value);
+                  setIsDirty(true);
+                }}
+                className="text-right"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-black font-semibold mb-1">Giá tác phẩm (VNĐ)</label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] text-right focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Chất liệu chế tác"
+                value={material}
+                placeholder="VD: Đất sét Trúc Thôn, men tro trấu"
+                onChange={(e) => {
+                  setMaterial(e.target.value);
+                  setIsDirty(true);
+                }}
+              />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-semibold mb-1">Chất liệu chế tác</label>
-                  <input
-                    type="text"
-                    value={material}
-                    onChange={(e) => setMaterial(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
+              <Input
+                label="Kích thước tác phẩm"
+                value={dimensions}
+                placeholder="VD: Cao 68cm x Đường kính 28cm"
+                onChange={(e) => {
+                  setDimensions(e.target.value);
+                  setIsDirty(true);
+                }}
+              />
+            </div>
 
-                <div>
-                  <label className="block text-black font-semibold mb-1">Kích thước</label>
-                  <input
-                    type="text"
-                    value={dimensions}
-                    onChange={(e) => setDimensions(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-              </div>
+            {/* Tải ảnh MinIO tích hợp nén ảnh tối ưu 2000 CCU */}
+            <ImageUploadDropzone
+              onFileReady={handleDropzoneFileReady}
+              previewUrl={imageUrl}
+              isUploading={uploadingImage}
+              uploadPercent={uploadPercent}
+              onClearPreview={() => {
+                setImageUrl('');
+                setIsDirty(true);
+              }}
+              label="Hình ảnh tác phẩm (Lưu trữ MinIO S3)"
+              helperText="Kéo thả hình ảnh tác phẩm vào đây hoặc bấm để chọn tệp"
+            />
 
-              {/* Tải ảnh tác phẩm lên MinIO */}
-              <div>
-                <label className="block text-black font-semibold mb-1">Hình ảnh tác phẩm (Lưu trữ MinIO)</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="text"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded bg-white text-xs text-[#1677ff]"
-                  />
-                  <label className="px-4 py-2 rounded bg-white border border-[#1677ff] text-[#1677ff] hover:bg-blue-50 font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-2xs">
-                    <UploadCloud className="w-4 h-4" />
-                    <span>{uploadingImage ? `${uploadPercent || 0}%...` : 'Tải ảnh MinIO'}</span>
-                    <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-black font-semibold mb-1">Mô tả tác phẩm</label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Hồn cốt tác phẩm, nét bút men chàm cổ..."
-                  className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-semibold mb-1">
-                    Tên làng nghề <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="VD: Làng Gốm Bát Tràng"
-                    value={vName}
-                    onChange={(e) => setVName(e.target.value)}
-                    autoFocus
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-black font-semibold mb-1">
-                    Mã/Slug làng nghề <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="VD: lang-gom-bat-trang"
-                    value={vSlug}
-                    onChange={(e) => setVSlug(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-black font-semibold mb-1">Vùng miền</label>
-                  <select
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  >
-                    <option value="Bac_Bo">Bắc Bộ</option>
-                    <option value="Trung_Bo">Trung Bộ</option>
-                    <option value="Tay_Nguyen">Tây Nguyên</option>
-                    <option value="Nam_Bo">Nam Bộ</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-black font-semibold mb-1">Tỉnh thành</label>
-                  <input
-                    type="text"
-                    value={province}
-                    onChange={(e) => setProvince(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-black font-semibold mb-1">Năm khởi lập</label>
-                  <input
-                    type="number"
-                    value={foundingYear}
-                    onChange={(e) => setFoundingYear(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] text-right focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-semibold mb-1">Vĩ độ (Latitude) *</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={lat}
-                    onChange={(e) => setLat(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] text-right focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-black font-semibold mb-1">Kinh độ (Longitude) *</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={lng}
-                    onChange={(e) => setLng(e.target.value)}
-                    className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] text-right focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-black font-semibold mb-1">Lịch sử khởi dựng &amp; di sản</label>
-                <textarea
-                  rows={2}
-                  value={vHistory}
-                  onChange={(e) => setVHistory(e.target.value)}
-                  placeholder="Lịch sử lập làng, các bậc tiền hiền khai sáng..."
-                  className="w-full px-3 py-2 border rounded bg-white text-[#1677ff] focus:outline-none focus:ring-1 focus:ring-[#1677ff]"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Form Buttons: Chuẩn 2 nút LƯU DỮ LIỆU và THOÁT */}
-          <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-[13px] transition-colors"
-            >
-              THOÁT
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 rounded bg-[#1677ff] hover:bg-blue-600 text-white font-bold text-[13px] flex items-center gap-2 shadow transition-colors disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? 'ĐANG LƯU...' : 'LƯU DỮ LIỆU'}
-            </button>
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-sans font-semibold text-heritage-indigo">
+                Hồn cốt & Mô tả tác phẩm
+              </label>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setIsDirty(true);
+                }}
+                placeholder="Nét bút men chàm cổ truyền, ý niệm nghệ thuật của nghệ nhân..."
+                className="w-full px-3.5 py-2.5 text-[13px] font-sans rounded-xl border border-heritage-border bg-white text-heritage-indigo focus:border-heritage-red focus:ring-2 focus:ring-heritage-red/15 transition-all shadow-sm"
+              />
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Tên làng nghề"
+                required
+                placeholder="VD: Làng Gốm Bát Tràng"
+                value={vName}
+                onChange={(e) => {
+                  setVName(e.target.value);
+                  setIsDirty(true);
+                }}
+                autoFocus
+              />
+
+              <Input
+                label="Mã / Slug làng nghề"
+                required
+                placeholder="VD: lang-gom-bat-trang"
+                value={vSlug}
+                onChange={(e) => {
+                  setVSlug(e.target.value);
+                  setIsDirty(true);
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-sans font-semibold text-heritage-indigo">
+                  Vùng miền
+                </label>
+                <select
+                  value={region}
+                  onChange={(e) => {
+                    setRegion(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-[13px] font-sans rounded-xl border border-heritage-border bg-white text-heritage-indigo focus:border-heritage-red focus:ring-2 focus:ring-heritage-red/15 transition-all shadow-sm"
+                >
+                  <option value="Bac_Bo">Đồng Bằng Bắc Bộ</option>
+                  <option value="Trung_Bo">Duyên Hải Miền Trung</option>
+                  <option value="Tay_Nguyen">Tây Nguyên</option>
+                  <option value="Nam_Bo">Nam Bộ</option>
+                </select>
+              </div>
+
+              <Input
+                label="Tỉnh / Thành phố"
+                value={province}
+                placeholder="VD: Hà Nội"
+                onChange={(e) => {
+                  setProvince(e.target.value);
+                  setIsDirty(true);
+                }}
+              />
+
+              <Input
+                label="Năm ước tính lập làng"
+                type="number"
+                value={foundingYear}
+                onChange={(e) => {
+                  setFoundingYear(e.target.value);
+                  setIsDirty(true);
+                }}
+                className="text-right"
+              />
+            </div>
+
+            {/* Chọn vị trí trực quan trên bản đồ để lấy Lat, Long */}
+            <MapCoordinatePicker
+              latitude={lat}
+              longitude={lng}
+              onChange={(newLat, newLng) => {
+                setLat(String(newLat));
+                setLng(String(newLng));
+                setIsDirty(true);
+              }}
+              label="Chọn Vị Trí Làng Nghề Trên Bản Đồ"
+              helperText="Nhấp chuột vào bản đồ nhỏ hoặc kéo ghim đỏ để cập nhật Vĩ độ và Kinh độ"
+            />
+
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-sans font-semibold text-heritage-indigo">
+                Lịch sử khởi dựng & Di sản làng nghề
+              </label>
+              <textarea
+                rows={3}
+                value={vHistory}
+                onChange={(e) => {
+                  setVHistory(e.target.value);
+                  setIsDirty(true);
+                }}
+                placeholder="Lịch sử lập làng, truyền tích các bậc tiền hiền khai sáng..."
+                className="w-full px-3.5 py-2.5 text-[13px] font-sans rounded-xl border border-heritage-border bg-white text-heritage-indigo focus:border-heritage-red focus:ring-2 focus:ring-heritage-red/15 transition-all shadow-sm"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Thanh nút bấm hành động chuẩn: LƯU DỮ LIỆU và THOÁT */}
+        <div className="pt-4 border-t border-heritage-border flex items-center justify-end gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+          >
+            THOÁT
+          </Button>
+
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={loading || uploadingImage}
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {loading ? 'ĐANG LƯU...' : 'LƯU DỮ LIỆU'}
+          </Button>
+        </div>
+      </form>
+    </HeritageModal>
   );
 };

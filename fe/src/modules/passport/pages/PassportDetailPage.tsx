@@ -14,12 +14,17 @@ import {
   Copy,
   ExternalLink,
   Flame,
-  CheckCircle2
+  CheckCircle2,
+  Camera,
+  Upload,
+  Download
 } from 'lucide-react';
 import { lookupPassport, HeritagePassport } from '../../../services/heritageApi';
 import { ArtworkMagnifier } from '../../../components/passport/ArtworkMagnifier';
 import { CertificateModal } from '../../../components/passport/CertificateModal';
 import { AntiCounterfeitTester } from '../../../components/passport/AntiCounterfeitTester';
+import { QrScannerModal } from '../components/QrScannerModal';
+import { QrExportModal } from '../components/QrExportModal';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 
@@ -34,6 +39,9 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [scannerInitialTab, setScannerInitialTab] = useState<'camera' | 'upload'>('camera');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
 
   const fetchPassportData = async (code: string) => {
@@ -77,18 +85,72 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
           </p>
         </div>
 
-        <div className="flex w-full md:w-auto gap-2">
-          <input
-            type="text"
-            value={passportCode}
-            onChange={(e) => setPassportCode(e.target.value.trim().toUpperCase())}
-            placeholder="Mã Passport (VD: VN-BT882194)"
-            className="px-4 py-2.5 text-sm border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-heritage-indigo text-heritage-indigo font-mono uppercase shadow-sm"
-          />
-          <Button variant="heritage" onClick={() => fetchPassportData(passportCode)} className="px-5">
-            <QrCode className="w-4 h-4 mr-2" />
+        <div className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2">
+          {/* Ô nhập mã Hộ chiếu */}
+          <div className="relative flex-1 sm:w-60">
+            <input
+              type="text"
+              value={passportCode}
+              onChange={(e) => setPassportCode(e.target.value.trim().toUpperCase())}
+              placeholder="Mã Passport (VD: VN-BT882194)"
+              className="w-full px-4 py-2.5 text-sm border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-heritage-indigo text-heritage-indigo font-mono uppercase shadow-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') fetchPassportData(passportCode);
+              }}
+            />
+          </div>
+
+          {/* Nút Tra Cứu */}
+          <Button 
+            variant="heritage" 
+            onClick={() => fetchPassportData(passportCode)} 
+            className="px-4 py-2.5 text-xs font-bold shadow-sm"
+          >
+            <QrCode className="w-4 h-4 mr-1.5" />
             Tra Cứu
           </Button>
+
+          {/* Bộ 3 công cụ QR Di Sản Số: Quét Camera, Tải Ảnh, Xuất QR */}
+          <div className="flex items-center gap-1.5">
+            {/* 1. Nút Quét Camera */}
+            <button
+              type="button"
+              onClick={() => {
+                setScannerInitialTab('camera');
+                setIsScannerModalOpen(true);
+              }}
+              title="Quét tem mã QR bằng Camera thiết bị"
+              className="flex-1 sm:flex-none px-3 py-2.5 bg-stone-100 hover:bg-stone-200 border border-gray-300 rounded-xl text-xs font-bold text-heritage-indigo flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <Camera className="w-4 h-4 text-heritage-terracotta" />
+              <span>Quét QR</span>
+            </button>
+
+            {/* 2. Nút Tải Ảnh QR */}
+            <button
+              type="button"
+              onClick={() => {
+                setScannerInitialTab('upload');
+                setIsScannerModalOpen(true);
+              }}
+              title="Tải ảnh QR từ máy tính hoặc dán ảnh clipboard"
+              className="flex-1 sm:flex-none px-3 py-2.5 bg-stone-100 hover:bg-stone-200 border border-gray-300 rounded-xl text-xs font-bold text-heritage-indigo flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <Upload className="w-4 h-4 text-heritage-brass" />
+              <span>Tải Ảnh</span>
+            </button>
+
+            {/* 3. Nút Xuất QR Di Sản */}
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              title="Xuất mã QR & Tem bảo chứng di sản số (In/Tải PNG/SVG)"
+              className="flex-1 sm:flex-none px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <Download className="w-4 h-4 text-emerald-600" />
+              <span>Xuất QR</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -140,7 +202,16 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setIsExportModalOpen(true)}
+                className="gap-1.5 text-xs bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50 font-bold shadow-2xs"
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                Xuất Tem QR Di Sản
+              </Button>
               <Button 
                 variant="heritage" 
                 size="sm" 
@@ -366,6 +437,25 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
           />
         </div>
       )}
+
+      {/* Modal Quét Mã QR (Camera trực tiếp & Tải ảnh) */}
+      <QrScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        initialTab={scannerInitialTab}
+        onScanSuccess={(scannedCode) => {
+          setPassportCode(scannedCode);
+          fetchPassportData(scannedCode);
+        }}
+      />
+
+      {/* Modal Xuất Mã QR & Tem Di Sản Số */}
+      <QrExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        passportCode={passportCode || 'VN-BT882194'}
+        passport={passport}
+      />
     </div>
   );
 };

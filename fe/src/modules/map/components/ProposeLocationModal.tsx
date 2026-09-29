@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Camera, Navigation, X } from 'lucide-react';
+import { MapPin, Camera, X } from 'lucide-react';
 import { apiClient } from '../../../services/apiClient';
+import { MapCoordinatePicker } from './MapCoordinatePicker';
 
 interface ProposeLocationModalProps {
   isOpen: boolean;
@@ -26,7 +27,6 @@ export const ProposeLocationModal: React.FC<ProposeLocationModalProps> = ({
   const [longitude, setLongitude] = useState(initialLng);
   const [images, setImages] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGettingGps, setIsGettingGps] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,26 +36,6 @@ export const ProposeLocationModal: React.FC<ProposeLocationModalProps> = ({
   }, [isOpen, initialLat, initialLng]);
 
   if (!isOpen) return null;
-
-  const handleGetGps = () => {
-    if (!navigator.geolocation) {
-      alert('Trình duyệt không hỗ trợ Geolocation');
-      return;
-    }
-    setIsGettingGps(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(Number(pos.coords.latitude.toFixed(6)));
-        setLongitude(Number(pos.coords.longitude.toFixed(6)));
-        setIsGettingGps(false);
-      },
-      (err) => {
-        alert('Không thể lấy tọa độ GPS: ' + err.message);
-        setIsGettingGps(false);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,51 +107,17 @@ export const ProposeLocationModal: React.FC<ProposeLocationModalProps> = ({
             </select>
           </div>
 
-          {/* Tọa độ GPS */}
-          <div className="p-3 bg-stone-50 rounded-lg border border-gray-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-black flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-heritage-terracotta" /> Tọa độ PostGIS WGS84
-              </span>
-              <button
-                type="button"
-                onClick={handleGetGps}
-                disabled={isGettingGps}
-                className="text-xs px-2.5 py-1 bg-white hover:bg-stone-100 border rounded font-bold text-heritage-indigo flex items-center gap-1"
-              >
-                <Navigation className={`w-3 h-3 ${isGettingGps ? 'animate-spin' : ''}`} />
-                {isGettingGps ? 'Đang lấy GPS...' : 'Lấy GPS hiện tại'}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[11px] text-gray-500">Vĩ độ (Latitude)</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  required
-                  value={latitude}
-                  onChange={(e) => setLatitude(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 text-xs text-[#1677ff] border rounded bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-gray-500">Kinh độ (Longitude)</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  required
-                  value={longitude}
-                  onChange={(e) => setLongitude(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 text-xs text-[#1677ff] border rounded bg-white"
-                />
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-500 italic">
-              * Hệ thống sẽ tự động đối chiếu hàm ST_DWithin với bán kính các làng nghề để phân luồng người duyệt tương ứng.
-            </p>
-          </div>
+          {/* Tọa độ PostGIS WGS84 chọn trên Bản Đồ */}
+          <MapCoordinatePicker
+            latitude={latitude}
+            longitude={longitude}
+            onChange={(newLat, newLng) => {
+              setLatitude(newLat);
+              setLongitude(newLng);
+            }}
+            label="Tọa độ PostGIS WGS84 (Chọn trên bản đồ)"
+            helperText="Nhấp vào bản đồ hoặc kéo ghim đỏ để chọn vị trí chính xác. Hệ thống sẽ tự động đối chiếu hàm ST_DWithin với bán kính các làng nghề."
+          />
 
           <div>
             <label className="block text-[13px] font-bold text-black mb-1">

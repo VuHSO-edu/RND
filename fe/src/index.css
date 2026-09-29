@@ -5,43 +5,65 @@
 @tailwind utilities;
 
 @layer base {
-  *, ::before, ::after {
-    font-family: 'Times New Roman', Times, serif;
-  }
-
   body {
-    background-color: #FBF9F5;
-    color: #1A202C;
-    font-family: 'Times New Roman', Times, serif;
+    background-color: #FDFBF7;
+    color: #1C2D37;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-heritage {
-    font-family: 'Times New Roman', Times, serif;
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Playfair Display', Merriweather, Georgia, serif;
   }
+
+  /* Đảm bảo toàn bộ form, input, button có phông chữ dễ đọc, sắc nét */
+  input, textarea, select, button {
+    font-family: inherit;
+  }
+}
+
+/* Thanh cuộn mảnh thanh lịch phong cách Neo-Heritage */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F5EFE6;
+}
+::-webkit-scrollbar-thumb {
+  background: #E8DEC8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C59A3F;
 }
 
 /* Tùy chỉnh marker & popup Leaflet đẹp mắt */
 .leaflet-popup-content-wrapper {
-  border-radius: 14px;
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.25);
-  font-family: 'Times New Roman', Times, serif;
+  border-radius: 16px;
+  box-shadow: 0 16px 36px -4px rgba(28, 45, 55, 0.25);
+  font-family: 'Plus Jakarta Sans', sans-serif;
   padding: 0 !important;
   overflow: hidden;
+  border: 1px solid #E8DEC8;
+  background: #FDFBF7;
 }
 
 .leaflet-popup-content {
   margin: 0 !important;
-  line-height: 1.4 !important;
+  line-height: 1.5 !important;
 }
 
 .leaflet-popup-close-button {
-  top: 8px !important;
-  right: 8px !important;
+  top: 10px !important;
+  right: 10px !important;
   color: #ffffff !important;
-  background: rgba(0, 0, 0, 0.5) !important;
+  background: rgba(28, 45, 55, 0.6) !important;
+  backdrop-filter: blur(4px);
   border-radius: 50% !important;
-  width: 22px !important;
-  height: 22px !important;
+  width: 24px !important;
+  height: 24px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -49,12 +71,13 @@
   font-size: 14px !important;
   font-weight: bold !important;
   z-index: 50 !important;
-  transition: background 0.2s ease !important;
+  transition: all 0.2s ease !important;
 }
 
 .leaflet-popup-close-button:hover {
-  background: rgba(197, 48, 48, 0.9) !important;
+  background: #8B1E1E !important;
   color: #ffffff !important;
+  transform: scale(1.05);
 }
 
 .leaflet-container {
@@ -67,34 +90,93 @@
 /* Tinh chỉnh nút Zoom và Lớp bản đồ đồng bộ phong cách Neo-Heritage */
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
-  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(28, 45, 55, 0.12) !important;
+  border-radius: 12px !important;
   overflow: hidden;
-  margin-bottom: 16px !important;
-  margin-left: 16px !important;
+  margin-bottom: 20px !important;
+  margin-left: 20px !important;
+  border: 1px solid #E8DEC8 !important;
 }
 
 .leaflet-control-zoom a {
-  background-color: #ffffff !important;
-  color: #1A365D !important;
-  font-weight: bold !important;
-  width: 34px !important;
-  height: 34px !important;
-  line-height: 34px !important;
+  background-color: #FDFBF7 !important;
+  color: #1C2D37 !important;
+  font-weight: 700 !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
   transition: all 0.2s ease;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: #f7fafc !important;
-  color: #C53030 !important;
+  background-color: #F5EFE6 !important;
+  color: #8B1E1E !important;
 }
 
 .leaflet-control-layers {
   border-radius: 12px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
-  border: 1px solid rgba(26, 54, 93, 0.15) !important;
-  margin-top: 14px !important;
-  margin-right: 14px !important;
-  font-family: 'Times New Roman', Times, serif !important;
+  box-shadow: 0 6px 18px rgba(28, 45, 55, 0.15) !important;
+  border: 1px solid #E8DEC8 !important;
+  background-color: rgba(253, 251, 247, 0.95) !important;
+  backdrop-filter: blur(8px);
+  margin-top: 16px !important;
+  margin-right: 16px !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
   font-size: 13px !important;
+  color: #1C2D37 !important;
 }
+
+/* ==========================================================================
+   NEO-HERITAGE CORE UTILITY CLASSES
+   Đảm bảo luôn hiển thị chuẩn màu và chống lỗi trắng chữ/mất chữ khi reload
+   ========================================================================== */
+.bg-heritage-red {
+  background-color: #8B1E1E !important;
+}
+.hover\:bg-heritage-hoverRed:hover, .bg-heritage-hoverRed {
+  background-color: #731818 !important;
+}
+.text-heritage-red {
+  color: #8B1E1E !important;
+}
+.text-heritage-gold {
+  color: #C59A3F !important;
+}
+.bg-heritage-gold {
+  background-color: #C59A3F !important;
+}
+.text-heritage-indigo {
+  color: #1C2D37 !important;
+}
+.bg-heritage-indigo {
+  background-color: #1C2D37 !important;
+}
+.bg-heritage-paper {
+  background-color: #FDFBF7 !important;
+}
+.bg-heritage-surface {
+  background-color: #F5EFE6 !important;
+}
+.border-heritage-border {
+  border-color: #E8DEC8 !important;
+}
+.text-heritage-subtext {
+  color: #687782 !important;
+}
+
+/* Gradient Classes Chuẩn Neo-Heritage */
+.bg-heritage-red-gradient {
+  background: linear-gradient(135deg, #8B1E1E 0%, #6E1414 100%) !important;
+}
+.bg-heritage-indigo-gradient {
+  background: linear-gradient(135deg, #1C2D37 0%, #233845 50%, #16242C 100%) !important;
+}
+.from-heritage-red {
+  --tw-gradient-from: #8B1E1E var(--tw-gradient-from-position, ) !important;
+  --tw-gradient-to: rgb(139 30 30 / 0) var(--tw-gradient-to-position, ) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+.to-heritage-red {
+  --tw-gradient-to: #8B1E1E var(--tw-gradient-to-position, ) !important;
+}
+
