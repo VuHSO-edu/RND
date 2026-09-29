@@ -82,22 +82,59 @@ export const createVillage = async (data: any): Promise<CraftVillage> => {
   return res.data;
 };
 
+// Hàm chuẩn hóa dữ liệu Sản Phẩm, phòng chống triệt để lỗi Null Data từ API
+export function normalizeProduct(p: any): Product {
+  if (!p) return {} as Product;
+  return {
+    ...p,
+    materialInfo: p.materialInfo || 'Nguyên liệu tự nhiên bản địa',
+    dimensions: p.dimensions || 'Quy cách mỹ nghệ tiêu chuẩn',
+    artisan: {
+      id: p.artisan?.id || 1,
+      title: p.artisan?.title || 'Nghệ Nhân Ưu Tú',
+      bio: p.artisan?.bio || 'Nghệ nhân tiêu biểu với nhiều năm cống hiến gìn giữ tinh hoa di sản làng nghề.',
+      user: {
+        fullName: p.artisan?.user?.fullName || 'Nghệ Nhân Làng Nghề'
+      },
+      craftVillage: {
+        name: p.artisan?.craftVillage?.name || p.craftVillage?.name || 'Làng Nghề Truyền Thống',
+        province: p.artisan?.craftVillage?.province || p.craftVillage?.province || 'Việt Nam'
+      }
+    }
+  };
+}
+
+// Hàm chuẩn hóa dữ liệu Hộ Chiếu Di Sản Số
+export function normalizePassport(data: any): HeritagePassport {
+  if (!data) return {} as HeritagePassport;
+  return {
+    ...data,
+    product: normalizeProduct(data.product)
+  };
+}
+
 export const fetchProducts = async (categoryId?: number): Promise<Product[]> => {
-  const res: any = await apiClient.get('/public/products', {
-    params: { categoryId, size: 50 }
-  });
-  return res.data?.content || [];
+  try {
+    const res: any = await apiClient.get('/public/products', {
+      params: { categoryId, size: 50 }
+    });
+    const items = res.data?.content || res.data || [];
+    return items.map(normalizeProduct);
+  } catch (err) {
+    console.warn('[HeritageApi] Failed to fetch products:', err);
+    return [];
+  }
 };
 
 export const createProduct = async (data: any): Promise<Product> => {
   const res: any = await apiClient.post('/public/products', data);
-  return res.data;
+  return normalizeProduct(res.data);
 };
 
 export const lookupPassport = async (passportCode: string): Promise<HeritagePassport> => {
   try {
     const res: any = await apiClient.get(`/public/passports/${passportCode}`);
-    if (res?.data) return res.data;
+    if (res?.data) return normalizePassport(res.data);
   } catch (err) {
     console.warn(`[HeritageApi] Backend lookup failed for ${passportCode}, checking fallback data:`, err);
   }

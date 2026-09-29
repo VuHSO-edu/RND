@@ -60,7 +60,7 @@ services:
       MINIO_ACCESS_KEY: heritage_admin
       MINIO_SECRET_KEY: HeritageMinio@2026
       MINIO_BUCKET_NAME: heritage-media
-      MINIO_PUBLIC_URL_PREFIX: http://localhost:9000/heritage-media
+      MINIO_PUBLIC_URL_PREFIX: ${MINIO_PUBLIC_URL_PREFIX:-http://localhost:9000/heritage-media}
     depends_on:
       postgres:
         condition: service_healthy

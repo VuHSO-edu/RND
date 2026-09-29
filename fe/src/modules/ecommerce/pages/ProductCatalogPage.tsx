@@ -96,13 +96,13 @@ export const ProductCatalogPage: React.FC<ProductCatalogPageProps> = ({ onSelect
               <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                 <div>
                   <span className="text-xs text-gray-400 uppercase tracking-wider block font-semibold">
-                    {product.artisan.craftVillage.name}
+                    {product.artisan?.craftVillage?.name || 'Làng Nghề Truyền Thống'}
                   </span>
                   <h3 className="font-heritage font-bold text-lg text-heritage-indigo group-hover:text-heritage-terracotta transition-colors mt-1">
                     {product.name}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">
-                    Nghệ nhân: <strong className="text-gray-700">{product.artisan.user.fullName}</strong> ({product.artisan.title})
+                    Nghệ nhân: <strong className="text-gray-700">{product.artisan?.user?.fullName || 'Nghệ Nhân Làng Nghề'}</strong> {product.artisan?.title ? `(${product.artisan.title})` : ''}
                   </p>
                   <p className="text-xs text-gray-600 line-clamp-2 mt-2 leading-relaxed">
                     {product.description}

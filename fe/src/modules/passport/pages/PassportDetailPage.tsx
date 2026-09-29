@@ -270,28 +270,32 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
               {/* Thông tin tác phẩm & Nghệ nhân */}
               <div className="bg-white p-6 rounded-2xl border border-heritage-indigo/10 shadow-sm space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-heritage-celadon">
-                  {passport.product.artisan.craftVillage.name}
+                  {passport.product?.artisan?.craftVillage?.name || 'Làng Nghề Truyền Thống'}
                 </span>
                 <h2 className="text-xl font-heritage font-bold text-heritage-indigo leading-snug">
-                  {passport.product.name}
+                  {passport.product?.name || 'Tác Phẩm Di Sản Số'}
                 </h2>
                 
                 <div className="space-y-2.5 text-xs text-gray-600 divide-y divide-gray-100">
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Nghệ nhân tạo tác:</span>
-                    <span className="font-bold text-heritage-indigo">{passport.product.artisan.user.fullName}</span>
+                    <span className="font-bold text-heritage-indigo">
+                      {passport.product?.artisan?.user?.fullName || 'Nghệ Nhân Làng Nghề'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Danh hiệu công nhận:</span>
-                    <span className="font-semibold text-heritage-brass">{passport.product.artisan.title}</span>
+                    <span className="font-semibold text-heritage-brass">
+                      {passport.product?.artisan?.title || 'Nghệ Nhân Ưu Tú'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Chất liệu tự nhiên:</span>
-                    <span>{passport.product.materialInfo}</span>
+                    <span>{passport.product?.materialInfo || 'Nguyên liệu tự nhiên bản địa'}</span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Quy cách kích thước:</span>
-                    <span>{passport.product.dimensions}</span>
+                    <span>{passport.product?.dimensions || 'Quy cách mỹ nghệ tiêu chuẩn'}</span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Định danh vật lý:</span>
@@ -309,11 +313,11 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
                 <div className="p-4 bg-[#FAF7F0] rounded-xl border-l-4 border-heritage-terracotta italic text-gray-700 text-xs font-serif leading-relaxed">
                   "{passport.artisanStoryQuote || 'Mỗi nếp rạn trên thân bình là một vết nứt thời gian, được nuôi dưỡng bởi hồn đất và tâm huyết của người thợ.'}"
                   <span className="block mt-2 font-sans font-bold text-[11px] text-heritage-indigo not-italic">
-                    — {passport.product.artisan.title} {passport.product.artisan.user.fullName} (45 năm tuổi nghề)
+                    — {passport.product?.artisan?.title || 'Nghệ Nhân'} {passport.product?.artisan?.user?.fullName || 'Làng Nghề'} (45 năm tuổi nghề)
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed font-sans">
-                  {passport.product.artisan.bio}
+                  {passport.product?.artisan?.bio || 'Nghệ nhân có nhiều năm cống hiến gìn giữ tinh hoa di sản làng nghề.'}
                 </p>
               </div>
 

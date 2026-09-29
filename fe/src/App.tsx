@@ -19,6 +19,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute';
 import { Forbidden403Page } from './pages/Forbidden403Page';
 import { DevRoleSwitcher } from './components/auth/DevRoleSwitcher';
 import { AdaptiveMobileNav } from './components/navigation/AdaptiveMobileNav';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -401,40 +402,42 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Workspace Area - Được bảo vệ bằng ProtectedRoute */}
+      {/* Main Workspace Area - Được bảo vệ bằng ProtectedRoute & ErrorBoundary */}
       <main className="flex-1">
-        {activeTab === 'map' && <HeritageMapPage />}
-        {activeTab === 'catalog' && <ProductCatalogPage onSelectProductForPassport={handleOpenPassport} />}
-        {activeTab === 'passport' && <PassportDetailPage initialCode={selectedPassportCode} />}
+        <ErrorBoundary>
+          {activeTab === 'map' && <HeritageMapPage />}
+          {activeTab === 'catalog' && <ProductCatalogPage onSelectProductForPassport={handleOpenPassport} />}
+          {activeTab === 'passport' && <PassportDetailPage initialCode={selectedPassportCode} />}
 
-        {/* Tab Đăng Nhập & Hồ Sơ Di Sản Riêng Biệt (Neo-Heritage Auth Split-Screen) */}
-        {activeTab === 'auth' && (
-          <HeritageAuthPage 
-            onSuccessRedirect={(newRole) => setActiveTab(getDefaultTab(newRole))}
-            onBackToHome={() => setActiveTab('map')}
-          />
-        )}
+          {/* Tab Đăng Nhập & Hồ Sơ Di Sản Riêng Biệt (Neo-Heritage Auth Split-Screen) */}
+          {activeTab === 'auth' && (
+            <HeritageAuthPage 
+              onSuccessRedirect={(newRole) => setActiveTab(getDefaultTab(newRole))}
+              onBackToHome={() => setActiveTab('map')}
+            />
+          )}
 
-        {/* Phân hệ Nghệ Nhân: Bảo vệ chỉ ARTISAN và SUPER_ADMIN được vào */}
-        {activeTab === 'artisan' && (
-          <ProtectedRoute allowedRoles={['ARTISAN', 'SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
-            <ArtisanStudioPage />
-          </ProtectedRoute>
-        )}
+          {/* Phân hệ Nghệ Nhân: Bảo vệ chỉ ARTISAN và SUPER_ADMIN được vào */}
+          {activeTab === 'artisan' && (
+            <ProtectedRoute allowedRoles={['ARTISAN', 'SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
+              <ArtisanStudioPage />
+            </ProtectedRoute>
+          )}
 
-        {/* Phân hệ Quản Lý Làng: Bảo vệ chỉ VILLAGE_ADMIN và SUPER_ADMIN được vào */}
-        {activeTab === 'village' && (
-          <ProtectedRoute allowedRoles={['VILLAGE_ADMIN', 'SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
-            <VillageDashboardPage />
-          </ProtectedRoute>
-        )}
+          {/* Phân hệ Quản Lý Làng: Bảo vệ chỉ VILLAGE_ADMIN và SUPER_ADMIN được vào */}
+          {activeTab === 'village' && (
+            <ProtectedRoute allowedRoles={['VILLAGE_ADMIN', 'SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
+              <VillageDashboardPage />
+            </ProtectedRoute>
+          )}
 
-        {/* Phân hệ Super Admin: Bảo vệ chỉ SUPER_ADMIN được vào */}
-        {activeTab === 'superadmin' && (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
-            <SuperAdminVillagesPage />
-          </ProtectedRoute>
-        )}
+          {/* Phân hệ Super Admin: Bảo vệ chỉ SUPER_ADMIN được vào */}
+          {activeTab === 'superadmin' && (
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
+              <SuperAdminVillagesPage />
+            </ProtectedRoute>
+          )}
+        </ErrorBoundary>
       </main>
 
       {/* MOBILE ADAPTIVE BOTTOM NAVIGATION BAR (Tự động thích ứng icon theo 4 Role) */}

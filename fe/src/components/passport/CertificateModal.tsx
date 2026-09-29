@@ -112,40 +112,40 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           <div className="py-8 space-y-6">
             <div className="text-center space-y-1">
               <span className="text-xs uppercase font-sans text-gray-500 tracking-wider">Tác phẩm được bảo hộ</span>
-              <div className="text-2xl font-bold text-heritage-indigo">{passport.product.name}</div>
+              <div className="text-2xl font-bold text-heritage-indigo">{passport?.product?.name || 'Tác Phẩm Di Sản'}</div>
               <p className="text-xs text-gray-600 font-sans">
-                Chế tác tại: <strong>{passport.product.artisan.craftVillage.name}</strong> • Hà Nội, Việt Nam
+                Chế tác tại: <strong>{passport?.product?.artisan?.craftVillage?.name || 'Làng Nghề Truyền Thống'}</strong> • Việt Nam
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-6 p-4 bg-white/70 rounded-xl border border-heritage-brass/30 text-xs font-sans">
               <div>
                 <span className="text-gray-500 block">Nghệ nhân tạo tác:</span>
-                <span className="font-bold text-sm text-heritage-indigo">{passport.product.artisan.user.fullName}</span>
-                <span className="text-[11px] text-gray-500 block">{passport.product.artisan.title}</span>
+                <span className="font-bold text-sm text-heritage-indigo">{passport?.product?.artisan?.user?.fullName || 'Nghệ Nhân Làng Nghề'}</span>
+                <span className="text-[11px] text-gray-500 block">{passport?.product?.artisan?.title || 'Nghệ nhân truyền thống'}</span>
               </div>
               <div>
                 <span className="text-gray-500 block">Quy cách &amp; Kích thước:</span>
-                <span className="font-bold">{passport.product.dimensions}</span>
+                <span className="font-bold">{passport?.product?.dimensions || 'Tiêu chuẩn'}</span>
                 <span className="text-[11px] text-gray-500 block">
-                  Trọng lượng: {passport.product.weightGram ? `${passport.product.weightGram / 1000}kg` : '45kg (Tiêu chuẩn)'}
+                  Trọng lượng: {passport?.product?.weightGram ? `${passport.product.weightGram / 1000}kg` : 'Tiêu chuẩn'}
                 </span>
               </div>
               <div>
                 <span className="text-gray-500 block">Chất liệu tự nhiên:</span>
-                <span>{passport.product.materialInfo}</span>
+                <span>{passport?.product?.materialInfo || 'Gốm / Đồng / Mây tre thủ công'}</span>
               </div>
               <div>
                 <span className="text-gray-500 block">Mã Hộ chiếu số:</span>
-                <span className="font-mono font-bold text-heritage-terracotta">{passport.passportCode}</span>
+                <span className="font-mono font-bold text-heritage-terracotta">{passport?.passportCode}</span>
               </div>
             </div>
 
             {/* Thông tin Blockchain */}
             <div className="p-3 bg-stone-100 rounded-lg text-[11px] font-mono space-y-1 text-gray-600 border border-gray-200">
               <div>• Chuỗi Ledger: Polygon POS Mainnet</div>
-              <div>• Smart Contract: {passport.smartContractAddress}</div>
-              <div>• Băm SHA-256: {passport.verificationHash}</div>
+              <div>• Smart Contract: {passport?.smartContractAddress || '0x71C...B49'}</div>
+              <div>• Băm SHA-256: {passport?.verificationHash || 'Đang cập nhật'}</div>
             </div>
           </div>
 
@@ -157,29 +157,29 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 {qrUrl ? (
                   <img
                     src={qrUrl}
-                    alt={`QR Code ${passport.passportCode}`}
+                    alt={`QR Code ${passport?.passportCode}`}
                     className="w-full h-full object-contain"
                   />
                 ) : (
                   <div className="w-6 h-6 border-2 border-heritage-terracotta border-t-transparent rounded-full animate-spin" />
                 )}
               </div>
-              <span className="text-[10px] font-mono text-gray-400 block">{passport.passportCode}</span>
+              <span className="text-[10px] font-mono text-gray-400 block">{passport?.passportCode}</span>
             </div>
 
             <div className="text-center space-y-6">
               <div className="text-xs text-gray-600 font-sans">
-                Hà Nội, ngày 27 tháng 09 năm 2026<br />
+                Việt Nam, năm 2026<br />
                 <strong>NGHỆ NHÂN ĐẠI DIỆN TẠO TÁC</strong>
               </div>
               
               {/* Con dấu triện son đỏ */}
               <div className="w-20 h-20 rounded-full border-2 border-red-600 text-red-600 flex items-center justify-center mx-auto text-[10px] font-bold uppercase rotate-[-12deg] tracking-tighter p-1 shadow-sm">
-                BÙI GIA GỐM<br />BÁT TRÀNG<br />ĐỘC BẢN
+                DI SẢN 360<br />CHỨNG THỰC<br />ĐỘC BẢN
               </div>
 
               <div className="font-bold text-sm text-heritage-indigo">
-                {passport.product.artisan.user.fullName}
+                {passport?.product?.artisan?.user?.fullName || 'Nghệ Nhân Làng Nghề'}
               </div>
             </div>
           </div>
