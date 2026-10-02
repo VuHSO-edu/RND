@@ -158,65 +158,109 @@ export const SuperAdminVillagesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Review Modal Chuẩn BHTT */}
+      {/* Review Modal Chuẩn BHTT Hiện Đại & Trẻ Trung */}
       {isModalOpen && selectedVillage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden">
-            {/* Header 56px */}
-            <div className="h-14 min-h-[56px] px-5 bg-heritage-indigo text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm">BHTT</span>
-                <span className="text-white/40">|</span>
-                <span className="text-xs font-medium">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+            {/* Header 56px Chuẩn BHTT */}
+            <div className={`h-14 min-h-[56px] px-6 text-white flex items-center justify-between border-b border-white/10 shrink-0 shadow-sm ${
+              action === 'APPROVED' 
+                ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600' 
+                : 'bg-gradient-to-r from-rose-600 via-red-600 to-pink-600'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <span className="font-bold text-xs tracking-wider uppercase bg-white/20 px-2 py-0.5 rounded-md text-amber-300">BHTT</span>
+                <span className="text-white/40">•</span>
+                <span className="text-sm font-bold tracking-wide">
                   {action === 'APPROVED' ? 'PHÊ DUYỆT LÀNG NGHỀ DI SẢN' : 'TỪ CHỐI HỒ SƠ LÀNG NGHỀ'}
                 </span>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/80 hover:text-white">✕</button>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/90 hover:text-white transition-all active:scale-95"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="p-5 space-y-4">
-              <div className="p-3 bg-stone-50 rounded-lg text-xs space-y-1">
-                <div>Làng nghề: <strong className="text-black">{selectedVillage.name}</strong></div>
-                <div>Địa bàn: {selectedVillage.province}</div>
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-1.5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-500 uppercase text-[11px]">Hồ sơ thẩm định:</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                    ID #{selectedVillage.id}
+                  </span>
+                </div>
+                <div className="text-sm font-bold text-slate-900">{selectedVillage.name}</div>
+                <div className="text-slate-600 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  <span>{selectedVillage.province} • {selectedVillage.region}</span>
+                </div>
               </div>
 
               {action === 'APPROVED' ? (
-                <p className="text-xs text-emerald-800 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-                  Xác nhận duyệt hồ sơ làng nghề. Hệ thống sẽ kích hoạt tài khoản Quản lý làng và liên kết khóa ngoại tương ứng.
-                </p>
+                <div className="p-4 bg-purple-50/80 border border-purple-200 rounded-2xl text-xs text-purple-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-purple-800">
+                    <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                    Xác nhận phê duyệt làng nghề di sản quốc gia
+                  </p>
+                  <p className="text-purple-700 leading-relaxed">
+                    Hệ thống sẽ kích hoạt thẩm quyền quản trị của Ban Quản Lý, cho phép phát hành Hộ chiếu số và phân phối sản phẩm ra thị trường.
+                  </p>
+                </div>
               ) : (
-                <div>
+                <div className="space-y-2">
                   <label className="block text-[13px] font-bold text-black mb-1">
-                    Lý do từ chối <span className="text-red-500">* (Bắt buộc)</span>
+                    Lý do từ chối <span className="text-red-500">* (Bắt buộc theo chuẩn BHTT)</span>
                   </label>
                   <textarea
                     rows={3}
                     required
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="VD: Thông tin địa giới không chính xác, thiếu giấy công nhận làng nghề..."
-                    className="w-full px-3 py-2 text-[#1677ff] border border-gray-300 rounded-lg text-sm"
+                    placeholder="VD: Thông tin địa giới không chính xác, thiếu văn bản công nhận làng nghề truyền thống..."
+                    className="w-full px-4 py-2.5 text-[#1677ff] font-semibold bg-slate-50/50 hover:bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-rose-500/15 focus:border-rose-500 focus:bg-white transition-all shadow-xs"
+                    autoFocus
                   />
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      'Thông tin ranh giới tọa độ không trùng khớp bản đồ địa chính.',
+                      'Thiếu quyết định công nhận làng nghề truyền thống cấp tỉnh.',
+                      'Hồ sơ đại diện Ban quản lý chưa được xác thực thông tin CCCD.'
+                    ].map(reason => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => setRejectionReason(reason)}
+                        className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 rounded-lg text-slate-700 border border-slate-200 transition-all text-left"
+                      >
+                        • {reason}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* 2 Buttons chuẩn BHTT */}
-              <div className="pt-3 flex items-center justify-end gap-3 border-t">
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-lg text-[13px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200"
+                  className="px-5 py-2.5 rounded-xl text-[13px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95"
                 >
                   THOÁT
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className={`px-6 py-2.5 rounded-lg text-[13px] font-bold text-white shadow ${
-                    action === 'APPROVED' ? 'bg-[#1677ff] hover:bg-blue-600' : 'bg-red-600 hover:bg-red-700'
+                  className={`px-6 py-2.5 rounded-xl text-[13px] font-bold text-white shadow-md transition-all active:scale-95 flex items-center gap-1.5 ${
+                    action === 'APPROVED' 
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/25' 
+                      : 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 shadow-rose-500/25'
                   }`}
                 >
-                  {action === 'APPROVED' ? 'XÁC NHẬN DUYỆT' : 'XÁC NHẬN TỪ CHỐI'}
+                  {action === 'APPROVED' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                  <span>{action === 'APPROVED' ? 'XÁC NHẬN DUYỆT' : 'XÁC NHẬN TỪ CHỐI'}</span>
                 </button>
               </div>
             </div>

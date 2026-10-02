@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { 
   Map, ShoppingBag, QrCode, Hammer, Building2, ShieldAlert, 
-  CheckSquare, Users, AlertTriangle, User 
+  CheckSquare, Users, AlertTriangle, User, Compass 
 } from 'lucide-react';
 
 interface AdaptiveMobileNavProps {
@@ -31,7 +31,17 @@ export const AdaptiveMobileNav: React.FC<AdaptiveMobileNavProps> = ({
           }`}
         >
           <ShoppingBag className="w-5 h-5" />
-          <span className="text-[10px] mt-1">Khám Phá</span>
+          <span className="text-[10px] mt-1">Chợ Di Sản</span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('community')}
+          className={`flex flex-col items-center justify-center flex-1 h-full py-1 ${
+            activeTab === 'community' ? 'text-heritage-red font-bold' : 'text-heritage-subtext'
+          }`}
+        >
+          <Compass className="w-5 h-5" />
+          <span className="text-[10px] mt-1">Cộng Đồng</span>
         </button>
 
         <button
@@ -91,7 +101,7 @@ export const AdaptiveMobileNav: React.FC<AdaptiveMobileNavProps> = ({
           }`}
         >
           <QrCode className="w-6 h-6" />
-          <span className="text-[11px] font-bold mt-0.5">Gán Thẻ NFC</span>
+          <span className="text-[11px] font-bold mt-0.5">Xuất Tem QR</span>
         </button>
       </nav>
     );
@@ -141,6 +151,16 @@ export const AdaptiveMobileNav: React.FC<AdaptiveMobileNavProps> = ({
       >
         <ShieldAlert className="w-5 h-5" />
         <span className="text-[10px] mt-1">Chỉ Huy Tổng</span>
+      </button>
+
+      <button
+        onClick={() => onSelectTab('community')}
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 ${
+          activeTab === 'community' ? 'text-purple-400 font-bold bg-white/10' : 'text-white/70'
+        }`}
+      >
+        <Compass className="w-5 h-5" />
+        <span className="text-[10px] mt-1">Cộng Đồng</span>
       </button>
 
       <button

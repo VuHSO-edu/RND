@@ -14,6 +14,7 @@ export interface HeritageModalProps {
   saveLabel?: string;
   cancelLabel?: string;
   saveLoading?: boolean;
+  headerGradient?: string;
   children: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ export const HeritageModal: React.FC<HeritageModalProps> = ({
   saveLabel = 'LƯU DỮ LIỆU',
   cancelLabel = 'THOÁT',
   saveLoading = false,
+  headerGradient,
   children
 }) => {
   // Lắng nghe phím Esc để đóng modal
@@ -63,11 +65,13 @@ export const HeritageModal: React.FC<HeritageModalProps> = ({
     '4xl': 'max-w-4xl'
   };
 
+  const defaultGradient = headerGradient || 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600';
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div 
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-heritage-indigo/65 backdrop-blur-sm overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto"
           role="dialog"
           aria-modal="true"
         >
@@ -80,27 +84,30 @@ export const HeritageModal: React.FC<HeritageModalProps> = ({
             className="fixed inset-0"
           />
 
-          {/* Modal Container */}
+          {/* Modal Container Trẻ Trung, Hiện Đại, Bo Góc 3xl */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${maxWidthClasses[maxWidth]} bg-heritage-paper rounded-2xl shadow-heritage-modal border border-heritage-border overflow-hidden z-10 my-8`}
+            className={`relative w-full ${maxWidthClasses[maxWidth]} bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-10 my-6`}
           >
-            {/* Header màu Đỏ Chu Sa cổ truyền sang trọng với chiều cao 56px */}
-            <div className="min-h-[56px] px-6 py-3.5 bg-gradient-to-r from-heritage-red to-[#6E1414] text-white flex items-center justify-between shrink-0 shadow-sm">
+            {/* Header 56px Chuẩn BHTT Hiện Đại Năng Động */}
+            <div className={`min-h-[56px] px-6 py-3.5 ${defaultGradient} text-white flex items-center justify-between shrink-0 shadow-sm border-b border-white/10`}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-heritage-gold animate-pulse" />
+                <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold tracking-wide uppercase text-white drop-shadow-sm flex items-center gap-2">
-                    <span className="text-heritage-gold text-xs font-sans font-semibold tracking-widest">BHTT •</span>
-                    {title}
+                  <h3 className="font-heading text-sm sm:text-base font-bold tracking-wide text-white drop-shadow-xs flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/20 uppercase tracking-widest text-amber-300">
+                      BHTT
+                    </span>
+                    <span className="text-white/40">•</span>
+                    <span>{title}</span>
                   </h3>
                   {subtitle && (
-                    <p className="text-xs text-white/80 mt-0.5 font-sans font-normal">
+                    <p className="text-[11px] text-white/80 mt-0.5 font-sans font-normal line-clamp-1">
                       {subtitle}
                     </p>
                   )}
@@ -110,25 +117,25 @@ export const HeritageModal: React.FC<HeritageModalProps> = ({
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-all duration-150 active:scale-95"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/90 hover:text-white transition-all active:scale-95"
                 title="Đóng hộp thoại (Esc)"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Nội dung Form cuộn mềm mại với nền nhạt */}
-            <div className="p-6 max-h-[75vh] overflow-y-auto text-heritage-indigo bg-heritage-surface/30">
+            {/* Nội dung Form cuộn mềm mại với nền tinh gọn */}
+            <div className="p-6 max-h-[75vh] overflow-y-auto text-slate-800 bg-white">
               {children}
             </div>
 
-            {/* Footer nút hành động tùy chọn */}
+            {/* Footer nút hành động năng động */}
             {showFooter && (
-              <div className="px-6 py-4 bg-heritage-surface/80 border-t border-heritage-border flex items-center justify-end gap-3">
+              <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={handleRequestClose}
-                  className="px-5 py-2.5 rounded-xl border border-heritage-border text-[13px] font-semibold text-heritage-subtext hover:bg-white hover:text-heritage-indigo hover:border-heritage-indigo/30 transition-all duration-150 active:scale-95"
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 transition-all active:scale-95"
                 >
                   {cancelLabel}
                 </button>
@@ -136,9 +143,9 @@ export const HeritageModal: React.FC<HeritageModalProps> = ({
                   type="button"
                   onClick={onSave}
                   disabled={saveLoading}
-                  className="px-6 py-2.5 rounded-xl bg-heritage-red hover:bg-heritage-hoverRed text-white text-[13px] font-bold flex items-center gap-2 shadow-md shadow-heritage-red/25 hover:shadow-lg transition-all duration-150 disabled:opacity-50 active:scale-95"
+                  className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-[13px] font-bold flex items-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-4 h-4 text-amber-300" />
                   {saveLoading ? 'ĐANG LƯU...' : saveLabel}
                 </button>
               </div>

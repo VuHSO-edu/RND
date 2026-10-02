@@ -65,6 +65,36 @@ public class HeritagePassport extends BaseEntity {
     @Builder.Default
     private Integer scanCount = 0;
 
+    @Column(name = "is_claimed", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isClaimed = false;
+
+    @Column(name = "claimed_at")
+    private Instant claimedAt;
+
+    @Column(name = "owner_id")
+    private Long ownerId;
+
+    @Column(name = "owner_name", length = 150)
+    private String ownerName;
+
+    @Column(name = "activation_secret_code", length = 32)
+    private String activationSecretCode;
+
+    @Column(name = "is_revoked", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isRevoked = false;
+
+    @Column(name = "revocation_reason", columnDefinition = "TEXT")
+    private String revocationReason;
+
+    @Column(name = "is_counterfeit_alert", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isCounterfeitAlert = false;
+
+    @Column(name = "certificate_download_url")
+    private String certificateDownloadUrl;
+
     @Column(nullable = false, length = 30)
     @Builder.Default
     private String status = "ACTIVE"; // PENDING_APPROVAL, ACTIVE, FLAGGED_ANOMALY, BLOCKED_COUNTERFEIT, REVOKED

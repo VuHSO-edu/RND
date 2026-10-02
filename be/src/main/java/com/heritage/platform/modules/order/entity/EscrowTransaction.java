@@ -47,4 +47,13 @@ public class EscrowTransaction extends BaseEntity {
 
     @Column(name = "released_at")
     private Instant releasedAt;
+
+    @Column(name = "dispute_reason", columnDefinition = "TEXT")
+    private String disputeReason;
+
+    @Column(name = "disputed_at")
+    private Instant disputedAt;
+
+    @Column(name = "evidence_image_url", length = 500)
+    private String evidenceImageUrl;
 }

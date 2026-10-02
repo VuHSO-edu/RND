@@ -1,6 +1,5 @@
 package com.heritage.platform.modules.passport.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,8 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BindNfcRequest {
-
-    @NotBlank(message = "common:validation.required")
-    private String nfcTagUid;
+public class BatchGenerateResponse {
+    private Long batchId;
+    private String batchCode;
+    private Integer totalGenerated;
+    private String downloadZipUrl;
 }

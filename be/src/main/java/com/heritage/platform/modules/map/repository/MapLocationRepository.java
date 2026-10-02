@@ -21,6 +21,9 @@ public interface MapLocationRepository extends JpaRepository<MapLocation, Long> 
     @EntityGraph(attributePaths = {"craftVillage", "submittedBy"})
     List<MapLocation> findByReviewScopeAndApprovalStatusAndIsDeletedFalse(String reviewScope, String approvalStatus);
 
+    @EntityGraph(attributePaths = {"craftVillage", "submittedBy"})
+    List<MapLocation> findBySubmittedByIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
+
     @Query(value = "SELECT * FROM map_locations WHERE is_deleted = false AND approval_status = 'APPROVED' AND (coordinates && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326))", nativeQuery = true)
     List<MapLocation> findWithinBoundingBox(
             @Param("minLng") double minLng,

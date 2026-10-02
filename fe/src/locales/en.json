@@ -43,5 +43,68 @@
     "withdraw": "WITHDRAW FUNDS TO BANK",
     "availableBalance": "Available Balance",
     "escrowBalance": "Escrow Balance"
+  },
+  "product": {
+    "backToCatalog": "Back to Marketplace",
+    "uniqueArtwork": "Unique Artwork (1 of 1)",
+    "standardArtwork": "Standard Edition",
+    "hasPassport": "Digital Passport Attached",
+    "viewPassport": "View Heritage Passport",
+    "passportCode": "Passport Code",
+    "skuCode": "SKU Code",
+    "artisanTitle": "Master Artisan",
+    "craftVillage": "Craft Village",
+    "price": "Artwork Price",
+    "quantity": "Quantity",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now with Escrow",
+    "customCommission": "Custom Commission Artwork",
+    "inStock": "In Stock at Workshop",
+    "outOfStock": "Already Collected",
+    "dimensions": "Dimensions",
+    "material": "Natural Materials",
+    "weight": "Weight",
+    "firingTemp": "Firing Temperature",
+    "firingTempVal": "1,280°C (Wood-fired 36 hours continuous)",
+    "tabs": {
+      "details": "Details & Materials",
+      "process": "Crafting Process",
+      "artisan": "Artisan Profile",
+      "reviews": "Verified Reviews",
+      "passport": "Ledger Attestation"
+    },
+    "viewMode": {
+      "artwork": "Texture & Grain Zoom",
+      "model3d": "3D Model 360° Rotate",
+      "depth": "3D Depth Parallax"
+    },
+    "escrow": {
+      "title": "7-Day Escrow Protection",
+      "desc": "Your payment is protected in an escrow account. Funds are released to the artisan only 7 days after delivery and authentic origin verification."
+    },
+    "reviews": {
+      "title": "Verified Customer Reviews",
+      "subtitle": "Only buyers who have completed orders and verified passports can submit reviews",
+      "verifiedBadge": "VERIFIED PURCHASE & SCANNED",
+      "empty": "No reviews yet for this masterpiece. Be the first to collect it!",
+      "writeReview": "Write a Review",
+      "rating": "Rating",
+      "commentPlaceholder": "Share your thoughts on the glaze, finish quality, and heritage story...",
+      "submit": "SUBMIT REVIEW"
+    },
+    "customModal": {
+      "title": "Commission Custom Artwork",
+      "subtitle": "Directly discuss custom specifications and requirements with the artisan",
+      "dimensionsReq": "Desired Dimensions",
+      "materialReq": "Glaze / Natural Material Preference",
+      "notes": "Concept description or custom inscription to engrave",
+      "depositNotice": "Note: Custom commissions require a 30% deposit held securely via Escrow.",
+      "send": "SUBMIT COMMISSION REQUEST",
+      "close": "EXIT"
+    },
+    "toast": {
+      "addedToCart": "Artwork added to cart successfully!",
+      "commissionSent": "Custom commission request submitted to the artisan!"
+    }
   }
 }

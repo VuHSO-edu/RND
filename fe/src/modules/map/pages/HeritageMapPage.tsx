@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Layers,
   Plus,
-  Users,
   Crosshair,
   MapPinned,
   Landmark,
@@ -26,7 +25,6 @@ import { Button } from '../../../components/ui/Button';
 import { HeritageDataEntryModal } from '../components/HeritageDataEntryModal';
 import { HeritageModal } from '../../../components/ui/HeritageModal';
 import { MapCoordinatePicker } from '../components/MapCoordinatePicker';
-import { UserManagementModal } from '../../gis/components/UserManagementModal';
 import { ProposeLocationModal } from '../components/ProposeLocationModal';
 import { apiClient } from '../../../services/apiClient';
 
@@ -135,7 +133,6 @@ export const HeritageMapPage: React.FC = () => {
   const [activeRegion, setActiveRegion] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [isDataModalOpen, setIsDataModalOpen] = useState<boolean>(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
   const [isProposeModalOpen, setIsProposeModalOpen] = useState<boolean>(false);
   const [showGestureTooltip, setShowGestureTooltip] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
@@ -725,14 +722,6 @@ export const HeritageMapPage: React.FC = () => {
               <MapPinned className="w-4 h-4 text-emerald-700" />
               <span>Đề Xuất Điểm</span>
             </button>
-            <button
-              onClick={() => setIsUserModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-heritage-indigo bg-white hover:bg-stone-100 transition-all border border-stone-300 shadow-sm font-sans"
-              title="Quản lý danh sách người dùng và cấp quyền"
-            >
-              <Users className="w-4 h-4 text-heritage-indigo" />
-              <span>Người Dùng</span>
-            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-1 bg-stone-100 p-1.5 rounded-xl border border-stone-200">
@@ -1225,12 +1214,6 @@ export const HeritageMapPage: React.FC = () => {
         }}
         initialLat={selectedVillage?.latitude}
         initialLng={selectedVillage?.longitude}
-      />
-
-      {/* Modal Quản lý Người Dùng */}
-      <UserManagementModal
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
       />
     </div>
   );

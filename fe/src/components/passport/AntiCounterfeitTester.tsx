@@ -52,7 +52,7 @@ export const AntiCounterfeitTester: React.FC<AntiCounterfeitTesterProps> = ({
       });
 
       if (res.data?.status === 'BLOCKED_COUNTERFEIT' || res.data?.status === 'FLAGGED_ANOMALY') {
-        setAlertMessage(`🚨 CẢNH BÁO ĐỎ: Phát hiện 2 lần quét liên tiếp có GPS chính xác cao với tốc độ bất khả thi tại ${city}! Hệ thống đã TỰ ĐỘNG KHÓA THẺ để chống nhân bản chip NFC.`);
+        setAlertMessage(`🚨 CẢNH BÁO ĐỎ: Phát hiện 2 lần quét liên tiếp có GPS chính xác cao với tốc độ bất khả thi tại ${city}! Hệ thống đã TỰ ĐỘNG KHÓA THẺ để chống nhân bản mã định danh QR.`);
       } else {
         const latestLog = logs[0];
         if (latestLog?.warningNote) {

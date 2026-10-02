@@ -25,6 +25,13 @@ export interface Product {
   model3dUrl?: string;
   imageUrl?: string;
   isUniqueArtwork: boolean;
+  stockQuantity?: number;
+  skuCode?: string;
+  artisanStory?: string;
+  creationProcessVideoUrl?: string;
+  weightGram?: number;
+  status?: string;
+  passportCode?: string;
   artisan: {
     id: number;
     title: string;
@@ -42,7 +49,8 @@ export interface Product {
 export interface HeritagePassport {
   id: number;
   passportCode: string;
-  nfcTagUid?: string;
+  serialNumber?: string;
+  batchCode?: string;
   craftingVideoUrl?: string;
   artisanStoryQuote?: string;
   blockchainTxHash: string;
@@ -51,6 +59,10 @@ export interface HeritagePassport {
   verificationHash: string;
   scanCount: number;
   status: 'ACTIVE' | 'FLAGGED_ANOMALY' | 'REVOKED';
+  isClaimed?: boolean;
+  claimedAt?: string;
+  ownerName?: string;
+  certificateDownloadUrl?: string;
   product: Product;
 }
 
@@ -131,6 +143,18 @@ export const createProduct = async (data: any): Promise<Product> => {
   return normalizeProduct(res.data);
 };
 
+export const fetchProductBySlug = async (slug: string): Promise<Product | null> => {
+  try {
+    const res: any = await apiClient.get(`/public/products/${slug}`);
+    if (res?.data) {
+      return normalizeProduct(res.data);
+    }
+  } catch (err) {
+    console.warn(`[HeritageApi] Backend fetch failed for slug ${slug}:`, err);
+  }
+  return null;
+};
+
 export const lookupPassport = async (passportCode: string): Promise<HeritagePassport> => {
   try {
     const res: any = await apiClient.get(`/public/passports/${passportCode}`);
@@ -146,7 +170,6 @@ export const lookupPassport = async (passportCode: string): Promise<HeritagePass
     return {
       id: 1,
       passportCode: 'VN-BT882194',
-      nfcTagUid: '04:A2:3C:99:1B:54:80',
       craftingVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
       artisanStoryQuote: 'Mỗi nếp rạn trên thân bình là một vết nứt thời gian, được nuôi dưỡng bởi hồn đất và tâm huyết của người thợ Bát Tràng.',
       blockchainTxHash: '0x8f3c7a2b9e1d4f6a0c5b8e2a1d4f6a0c5b8e2a1d4f6a0c5b8e2a1d4f6a0c5b8e',
@@ -186,7 +209,6 @@ export const lookupPassport = async (passportCode: string): Promise<HeritagePass
     return {
       id: Math.floor(Math.random() * 1000) + 10,
       passportCode: upper,
-      nfcTagUid: '04:B8:11:FE:89:12:44',
       craftingVideoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
       artisanStoryQuote: 'Di sản là tinh hoa của bàn tay và tâm hồn dân tộc qua nhiều thế hệ truyền nghề.',
       blockchainTxHash: '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join(''),

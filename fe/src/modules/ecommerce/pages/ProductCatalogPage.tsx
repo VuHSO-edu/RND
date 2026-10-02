@@ -4,6 +4,7 @@ import { ShoppingBag, Sparkles, Filter, Check, Eye } from 'lucide-react';
 import { fetchProducts, Product } from '../../../services/heritageApi';
 import { useCartStore } from '../../../stores/useCartStore';
 import { Button } from '../../../components/ui/Button';
+import { ProductDetailPage } from './ProductDetailPage';
 
 interface ProductCatalogPageProps {
   onSelectProductForPassport?: (code: string) => void;
@@ -12,6 +13,7 @@ interface ProductCatalogPageProps {
 export const ProductCatalogPage: React.FC<ProductCatalogPageProps> = ({ onSelectProductForPassport }) => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const addToCart = useCartStore((state) => state.addToCart);
@@ -30,6 +32,17 @@ export const ProductCatalogPage: React.FC<ProductCatalogPageProps> = ({ onSelect
       .then((data) => setProducts(data))
       .finally(() => setLoading(false));
   }, [selectedCategory]);
+
+  // Nếu người dùng chọn xem chi tiết một tác phẩm
+  if (selectedProduct) {
+    return (
+      <ProductDetailPage
+        product={selectedProduct}
+        onBack={() => setSelectedProduct(null)}
+        onOpenPassport={onSelectProductForPassport}
+      />
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -75,7 +88,10 @@ export const ProductCatalogPage: React.FC<ProductCatalogPageProps> = ({ onSelect
               className="bg-white rounded-2xl border border-heritage-indigo/10 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col group"
             >
               {/* Image Preview */}
-              <div className="relative h-64 w-full bg-stone-100 overflow-hidden">
+              <div 
+                onClick={() => setSelectedProduct(product)}
+                className="relative h-64 w-full bg-stone-100 overflow-hidden cursor-pointer"
+              >
                 <img
                   src={product.imageUrl || 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80'}
                   alt={product.name}
@@ -98,7 +114,10 @@ export const ProductCatalogPage: React.FC<ProductCatalogPageProps> = ({ onSelect
                   <span className="text-xs text-gray-400 uppercase tracking-wider block font-semibold">
                     {product.artisan?.craftVillage?.name || 'Làng Nghề Truyền Thống'}
                   </span>
-                  <h3 className="font-heritage font-bold text-lg text-heritage-indigo group-hover:text-heritage-terracotta transition-colors mt-1">
+                  <h3 
+                    onClick={() => setSelectedProduct(product)}
+                    className="font-heritage font-bold text-lg text-heritage-indigo group-hover:text-heritage-terracotta transition-colors mt-1 cursor-pointer"
+                  >
                     {product.name}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">
@@ -118,16 +137,14 @@ export const ProductCatalogPage: React.FC<ProductCatalogPageProps> = ({ onSelect
                   </div>
 
                   <div className="flex gap-2">
-                    {onSelectProductForPassport && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => onSelectProductForPassport('VN-BT882194')}
-                        title="Xem Hộ chiếu di sản"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSelectedProduct(product)}
+                      title="Xem chi tiết tác phẩm & 3D"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="heritage"
                       size="sm"

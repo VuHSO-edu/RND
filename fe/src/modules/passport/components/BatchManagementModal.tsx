@@ -42,15 +42,13 @@ interface BatchManagementModalProps {
   onClose: () => void;
   villageId?: number;
   products?: Array<{ id: number; name: string; skuCode: string }>;
-  onBindNfc?: (passportCode: string) => void;
 }
 
 export const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
   isOpen,
   onClose,
   villageId = 1,
-  products = [],
-  onBindNfc
+  products = []
 }) => {
   const { t } = useTranslation();
   const [batches, setBatches] = useState<ProductBatch[]>([]);
@@ -156,60 +154,88 @@ export const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-4xl bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+        className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-slate-100"
         style={{ fontFamily: 'Tahoma, sans-serif' }}
       >
-        {/* Header 56px Chuẩn BHTT */}
-        <div className="h-14 min-h-[56px] px-6 bg-heritage-indigo text-white flex items-center justify-between border-b border-heritage-brass/40 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm">BHTT</span>
-            <span className="text-white/40">|</span>
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              QUẢN LÝ LÔ XUẤT XƯỞNG &amp; MÃ BĂM MERKLE ON-CHAIN
-            </span>
+        {/* Header 56px Chuẩn BHTT Hiện Đại */}
+        <div className="h-14 min-h-[56px] px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white flex items-center justify-between border-b border-white/10 shrink-0 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+              <PackageCheck className="w-4 h-4 text-emerald-200" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs tracking-wider uppercase text-emerald-200">BHTT</span>
+                <span className="text-white/40">•</span>
+                <span className="text-sm font-bold tracking-wide">QUẢN LÝ LÔ XUẤT XƯỞNG &amp; MÃ BĂM MERKLE</span>
+              </div>
+              <p className="text-[11px] text-emerald-100/90 hidden sm:block">
+                Thẩm định xuất xưởng &amp; đóng gói cây Merkle Tree On-chain
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-white/80 hover:text-white font-bold text-lg">✕</button>
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/90 hover:text-white transition-all active:scale-95"
+            title="Đóng (Esc)"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Nội dung chính */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-[#f0f2f5]">
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/60">
           {/* Thanh tác vụ */}
-          <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
             <div>
-              <h3 className="font-bold text-sm text-heritage-indigo">Danh sách Lô Xuất Xưởng Làng Nghề</h3>
-              <p className="text-xs text-gray-500">Quản lý kiểm định xuất xưởng, sinh Merkle Root Tree và neo bằng chứng Polygon Ledger</p>
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <span>Danh Sách Lô Xuất Xưởng Làng Nghề</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  {batches.length} Lô
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Kiểm định lô hàng, sinh Merkle Root Tree và neo bằng chứng số hóa Polygon Ledger</p>
             </div>
             <button
               onClick={() => setIsCreating(!isCreating)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-heritage-terracotta hover:bg-red-800 text-white font-bold text-xs rounded shadow-sm transition-all"
+              className={`flex items-center gap-2 px-5 py-2.5 font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 ${
+                isCreating 
+                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200' 
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-500/25'
+              }`}
             >
-              <Plus className="w-4 h-4" />
-              <span>{isCreating ? 'Đóng Tạo Lô' : 'Khai Báo Lô Mới'}</span>
+              <Plus className={`w-4 h-4 transition-transform ${isCreating ? 'rotate-45' : ''}`} />
+              <span>{isCreating ? 'Đóng Biểu Mẫu' : '+ Khai Báo Lô Mới'}</span>
             </button>
           </div>
 
-          {/* Form Tạo Lô Mới */}
+          {/* Form Tạo Lô Mới Năng Động Trẻ Trung */}
           {isCreating && (
-            <form onSubmit={handleCreateBatch} className="bg-white p-5 rounded-lg border border-heritage-terracotta/30 shadow-md space-y-4">
-              <h4 className="font-bold text-xs uppercase text-heritage-terracotta tracking-wider flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Khai Báo Lô Sản Phẩm &amp; Cấp Hàng Loạt Hộ Chiếu Di Sản
-              </h4>
+            <form onSubmit={handleCreateBatch} className="bg-white p-6 rounded-2xl border border-emerald-200/80 shadow-md space-y-4 animate-in slide-in-from-top-3 duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h4 className="font-bold text-xs uppercase text-emerald-800 tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  Khai Báo Lô Sản Phẩm &amp; Cấp Hàng Loạt Hộ Chiếu Di Sản
+                </h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Chuẩn Merkle Tree
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[13px] font-bold text-black mb-1">
+                  <label className="block text-[13px] font-bold text-black mb-1.5">
                     Chọn Mẫu Tác Phẩm SKU <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={productId}
                     onChange={(e) => setProductId(Number(e.target.value))}
-                    className="w-full h-10 px-3 border border-gray-300 rounded text-[13px] text-[#1677ff] bg-stone-50 focus:outline-none focus:border-[#1677ff]"
+                    className="w-full h-11 px-3.5 border border-slate-200 rounded-xl text-[13px] text-[#1677ff] font-semibold bg-slate-50/50 hover:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-500 transition-all shadow-xs"
                     required
                   >
-                    <option value="">-- Chọn tác phẩm SKU đã duyệt --</option>
+                    <option value="">-- Chọn tác phẩm SKU đã được duyệt --</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({p.skuCode})
@@ -219,8 +245,9 @@ export const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-bold text-black mb-1">
-                    Số Lượng Xuất Xưởng (1 - 1000) <span className="text-red-500">*</span>
+                  <label className="block text-[13px] font-bold text-black mb-1.5 flex items-center justify-between">
+                    <span>Số Lượng Xuất Xưởng <span className="text-red-500">*</span></span>
+                    <span className="text-[11px] font-normal text-slate-400">Tối đa 1000 tem/lô</span>
                   </label>
                   <input
                     type="number"
@@ -228,38 +255,58 @@ export const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                     max="1000"
                     value={quantity}
                     onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-full h-10 px-3 border border-gray-300 rounded text-[13px] text-[#1677ff] bg-stone-50 focus:outline-none focus:border-[#1677ff]"
+                    className="w-full h-11 px-3.5 border border-slate-200 rounded-xl text-[13px] text-[#1677ff] font-semibold bg-slate-50/50 hover:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-500 transition-all shadow-xs"
                     required
                   />
+                  {/* Quick Quantity Chips */}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {[10, 25, 50, 100, 250, 500].map(qty => (
+                      <button
+                        key={qty}
+                        type="button"
+                        onClick={() => setQuantity(qty)}
+                        className={`text-[11px] px-2.5 py-1 rounded-lg border font-medium transition-all ${
+                          quantity === qty
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {qty} tem
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[13px] font-bold text-black mb-1">Ghi Chú Đợt Nung / Xuất Xưởng</label>
+                <label className="block text-[13px] font-bold text-black mb-1.5">
+                  Ghi Chú Đợt Nung / Xuất Xưởng
+                </label>
                 <textarea
                   rows={2}
                   value={batchNotes}
                   onChange={(e) => setBatchNotes(e.target.value)}
-                  placeholder="Ví dụ: Đợt nung củi truyền thống tháng 9/2026, đất sét non lọc kỹ..."
-                  className="w-full p-2.5 border border-gray-300 rounded text-[13px] text-[#1677ff] bg-stone-50 focus:outline-none focus:border-[#1677ff]"
+                  placeholder="Ví dụ: Đợt nung củi truyền thống tháng 10/2026, đất sét non phù sa sông Hồng nung 1250°C..."
+                  className="w-full p-3 border border-slate-200 rounded-xl text-[13px] text-[#1677ff] font-semibold bg-slate-50/50 hover:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-emerald-500 transition-all shadow-xs"
                 />
               </div>
 
               {/* 2-Button Rule: LƯU DỮ LIỆU & THOÁT */}
-              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsCreating(false)}
-                  className="px-5 py-2 border border-gray-300 rounded text-xs font-bold text-gray-700 bg-white hover:bg-stone-100 transition-all uppercase"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95 uppercase"
                 >
                   THOÁT
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2 bg-[#1677ff] hover:bg-blue-700 text-white rounded text-xs font-bold transition-all shadow-sm uppercase disabled:opacity-50"
+                  className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 uppercase"
                 >
-                  {isSubmitting ? 'ĐANG KHỞI TẠO...' : 'LƯU DỮ LIỆU'}
+                  <Sparkles className="w-4 h-4 text-emerald-200" />
+                  <span>{isSubmitting ? 'ĐANG KHỞI TẠO...' : 'LƯU DỮ LIỆU'}</span>
                 </button>
               </div>
             </form>
@@ -386,24 +433,11 @@ export const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                     <div>
                       <span className="font-bold text-heritage-indigo">{p.serialNumber || p.passportCode}</span>
                       <span className="text-[10px] text-gray-500 ml-2">Mã băm: {p.verificationHash?.substring(0, 16)}...</span>
-                      {p.nfcTagUid ? (
-                        <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">
-                          NFC: {p.nfcTagUid}
-                        </span>
-                      ) : (
-                        <span className="ml-2 text-[10px] text-amber-600 font-semibold">Chưa gắn chip NFC</span>
-                      )}
+                      <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        QR Sẵn Sàng
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {onBindNfc && (
-                        <button
-                          onClick={() => onBindNfc(p.passportCode)}
-                          className="px-2.5 py-1 bg-white hover:bg-stone-100 text-[#1677ff] border border-gray-300 rounded text-[11px] font-bold flex items-center gap-1 shadow-sm"
-                        >
-                          <Radio className="w-3 h-3 text-[#1677ff]" />
-                          <span>Gắn NFC</span>
-                        </button>
-                      )}
                       <a
                         href={`/passport/${p.passportCode}`}
                         target="_blank"

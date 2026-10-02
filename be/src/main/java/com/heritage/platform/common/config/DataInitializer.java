@@ -17,6 +17,14 @@ import com.heritage.platform.modules.gis.entity.OrgUnit;
 import com.heritage.platform.modules.gis.entity.PowerAsset;
 import com.heritage.platform.modules.gis.repository.OrgUnitRepository;
 import com.heritage.platform.modules.gis.repository.PowerAssetRepository;
+import com.heritage.platform.modules.article.entity.HeritageArticle;
+import com.heritage.platform.modules.article.repository.HeritageArticleRepository;
+import com.heritage.platform.modules.tour.entity.HeritageTour;
+import com.heritage.platform.modules.tour.repository.HeritageTourRepository;
+import com.heritage.platform.modules.crowdfunding.entity.CrowdfundingCampaign;
+import com.heritage.platform.modules.crowdfunding.repository.CrowdfundingCampaignRepository;
+import com.heritage.platform.modules.map.entity.MapLocation;
+import com.heritage.platform.modules.map.repository.MapLocationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -25,6 +33,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -40,11 +49,27 @@ public class DataInitializer implements CommandLineRunner {
     private final PassportAuditLogRepository auditLogRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final PowerAssetRepository powerAssetRepository;
+    private final HeritageArticleRepository articleRepository;
+    private final HeritageTourRepository tourRepository;
+    private final CrowdfundingCampaignRepository campaignRepository;
+    private final MapLocationRepository mapLocationRepository;
+    private final com.heritage.platform.modules.order.repository.OrderRepository orderRepository;
+    private final com.heritage.platform.modules.order.service.EscrowService escrowService;
+    private final com.heritage.platform.modules.artisan.repository.WalletTransactionRepository walletTransactionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
         log.info("[DATA_INIT] Kiểm tra và đồng bộ cơ sở dữ liệu hệ thống...");
+
+        try {
+            jdbcTemplate.execute("UPDATE heritage_passports SET is_revoked = false WHERE is_revoked IS NULL");
+            jdbcTemplate.execute("UPDATE heritage_passports SET is_claimed = false WHERE is_claimed IS NULL");
+            jdbcTemplate.execute("UPDATE heritage_passports SET is_counterfeit_alert = false WHERE is_counterfeit_alert IS NULL");
+        } catch (Exception e) {
+            log.debug("Sanitize heritage_passports nulls ignored: {}", e.getMessage());
+        }
 
         // 0. Tạo người dùng Gis Admin (admin_gis) chuẩn
         if (userRepository.findByUsername("admin_gis").isEmpty()) {
@@ -177,83 +202,349 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        if (craftVillageRepository.count() >= 6 && productRepository.count() > 0) {
-            log.info("[DATA_INIT] Cơ sở dữ liệu đã đầy đủ dữ liệu mẫu.");
-            return;
+        CraftVillage batTrangPersisted = craftVillageRepository.findBySlugAndIsDeletedFalse("lang-gom-bat-trang").orElse(batTrang);
+
+        if (productRepository.count() == 0) {
+            // 2. Tạo Tài khoản & Nghệ nhân
+            User artisanUser = User.builder()
+                    .email("artisan.bui@heritage.vn")
+                    .phone("0988123456")
+                    .fullName("Bùi Gia Gốm")
+                    .passwordHash(passwordEncoder.encode("Heritage@2026"))
+                    .role("ROLE_ARTISAN")
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(artisanUser);
+
+            ArtisanProfile artisanProfile = ArtisanProfile.builder()
+                    .user(artisanUser)
+                    .craftVillage(batTrangPersisted)
+                    .title("Nghệ nhân Ưu tú Bát Tràng")
+                    .bio("Sinh ra trong cái nôi gốm Bát Tràng, hơn 45 năm miệt mài bên bàn xoay và lò củi, nghệ nhân Bùi Gia Gốm đã phục chế thành công dòng men rạn cổ truyền thời Lê - Mạc, kết hợp hài hòa nét bút dân gian với kỹ nghệ nung lửa bí truyền.")
+                    .experienceYears(45)
+                    .workshopAddress("Số 18 Thôn 1 Làng Cổ Bát Tràng, Gia Lâm, Hà Nội")
+                    .verificationStatus("VERIFIED")
+                    .availableBalance(new BigDecimal("34200000.00"))
+                    .escrowBalance(new BigDecimal("9600000.00"))
+                    .build();
+            artisanProfileRepository.save(artisanProfile);
+
+            // 3. Tạo Tác phẩm Di sản
+            Product product = Product.builder()
+                    .artisan(artisanProfile)
+                    .name("Lục Bình Men Rạn Bát Tràng - Cá Chép Vượt Vũ Môn")
+                    .slug("luc-binh-men-ran-bat-trang-ca-chep")
+                    .categoryId(1) // Gốm sứ
+                    .description("Tác phẩm chế tác thủ công hoàn toàn trên bàn xoay truyền thống, họa tiết cá chép vẽ tay men chàm cổ và nung liên tục 36 giờ trong lò củi ở nhiệt độ 1280°C.")
+                    .materialInfo("Đất sét non Cao Lanh Bát Tràng chọn lọc, men tro trấu tự nhiên.")
+                    .dimensions("Cao 68cm x Đường kính thân 28cm")
+                    .weightGram(8500)
+                    .price(new BigDecimal("4800000.00"))
+                    .stockQuantity(1)
+                    .isUniqueArtwork(true)
+                    .imageUrl("/images/luc-binh-men-ran-bat-trang.jpg")
+                    .status("PUBLISHED")
+                    .build();
+            productRepository.save(product);
+
+            // 4. Tạo Hộ chiếu Di sản Số
+            String rawData = artisanProfile.getId() + ":" + product.getId() + ":" + Instant.now().toEpochMilli();
+            HeritagePassport passport = HeritagePassport.builder()
+                    .product(product)
+                    .passportCode("VN-BT882194")
+                    .craftingVideoUrl("https://www.youtube.com/embed/dQw4w9WgXcQ")
+                    .artisanStoryQuote("Mỗi nếp rạn trên thân bình là một vết nứt thời gian, được nuôi dưỡng bởi hồn đất và tâm huyết của người thợ.")
+                    .verificationHash(HashUtils.sha256(rawData))
+                    .blockchainTxHash("0x82f1b4c9e88d7120a5991823bc89a7413f9a718c03")
+                    .blockchainTokenId("78912")
+                    .smartContractAddress("0x71a2B889cFe49D1e5e78B2c56a88F932De7189cF")
+                    .scanCount(1)
+                    .status("ACTIVE")
+                    .build();
+            passportRepository.save(passport);
+
+            // 5. Ghi log quét lần đầu tại xưởng Bát Tràng
+            PassportAuditLog firstLog = PassportAuditLog.builder()
+                    .passport(passport)
+                    .ipAddress("118.70.182.45")
+                    .userAgent("QR Verification Terminal • Workshop Studio")
+                    .latitude(20.9781)
+                    .longitude(105.9125)
+                    .city("Hà Nội")
+                    .country("VN")
+                    .isAnomaly(false)
+                    .build();
+            auditLogRepository.save(firstLog);
         }
 
-        // 2. Tạo Tài khoản & Nghệ nhân
-        User artisanUser = User.builder()
-                .email("artisan.bui@heritage.vn")
-                .phone("0988123456")
-                .fullName("Bùi Gia Gốm")
-                .passwordHash(passwordEncoder.encode("Heritage@2026"))
-                .role("ROLE_ARTISAN")
-                .status("ACTIVE")
-                .build();
-        userRepository.save(artisanUser);
+        ArtisanProfile defaultArtisan = artisanProfileRepository.findAll().stream().findFirst().orElse(null);
 
-        ArtisanProfile artisanProfile = ArtisanProfile.builder()
-                .user(artisanUser)
-                .craftVillage(batTrang)
-                .title("Nghệ nhân Ưu tú Bát Tràng")
-                .bio("Sinh ra trong cái nôi gốm Bát Tràng, hơn 45 năm miệt mài bên bàn xoay và lò củi, nghệ nhân Bùi Gia Gốm đã phục chế thành công dòng men rạn cổ truyền thời Lê - Mạc, kết hợp hài hòa nét bút dân gian với kỹ nghệ nung lửa bí truyền.")
-                .experienceYears(45)
-                .workshopAddress("Số 18 Thôn 1 Làng Cổ Bát Tràng, Gia Lâm, Hà Nội")
-                .verificationStatus("VERIFIED")
-                .availableBalance(new BigDecimal("34200000.00"))
-                .escrowBalance(new BigDecimal("9600000.00"))
-                .build();
-        artisanProfileRepository.save(artisanProfile);
+        // 6. Dữ liệu Bản đồ số GIS
+        if (mapLocationRepository.count() == 0) {
+            MapLocation loc1 = MapLocation.builder()
+                    .craftVillage(batTrangPersisted)
+                    .title("Lò Bầu Cổ Bát Tràng Thế Kỷ 19")
+                    .category("HISTORICAL_SITE")
+                    .description("Lò nung gốm cổ còn nguyên vẹn 5 bầu nung truyền thống.")
+                    .latitude(20.978123)
+                    .longitude(105.912845)
+                    .approvalStatus("APPROVED")
+                    .reviewScope("VILLAGE")
+                    .images("[\"https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80\"]")
+                    .build();
+            MapLocation loc2 = MapLocation.builder()
+                    .craftVillage(batTrangPersisted)
+                    .title("Xưởng Vuốt Gốm Bùi Gia")
+                    .category("WORKSHOP")
+                    .description("Không gian trải nghiệm làm gốm và giao lưu cùng nghệ nhân ưu tú.")
+                    .latitude(20.978900)
+                    .longitude(105.913500)
+                    .approvalStatus("APPROVED")
+                    .reviewScope("VILLAGE")
+                    .images("[\"https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80\"]")
+                    .build();
+            MapLocation loc3 = MapLocation.builder()
+                    .craftVillage(batTrangPersisted)
+                    .title("Cổng Làng Cổ Bát Tràng")
+                    .category("CHECKIN_POINT")
+                    .description("Cổng tam quan cổ kính dẫn vào làng gốm Bát Tràng.")
+                    .latitude(20.977200)
+                    .longitude(105.911800)
+                    .approvalStatus("APPROVED")
+                    .reviewScope("VILLAGE")
+                    .build();
+            mapLocationRepository.saveAll(List.of(loc1, loc2, loc3));
+            log.info("[DATA_INIT] Đã khởi tạo hoàn tất điểm di sản trên bản đồ GIS!");
+        }
 
-        // 3. Tạo Tác phẩm Di sản
-        Product product = Product.builder()
-                .artisan(artisanProfile)
-                .name("Lục Bình Men Rạn Bát Tràng - Cá Chép Vượt Vũ Môn")
-                .slug("luc-binh-men-ran-bat-trang-ca-chep")
-                .categoryId(1) // Gốm sứ
-                .description("Tác phẩm chế tác thủ công hoàn toàn trên bàn xoay truyền thống, họa tiết cá chép vẽ tay men chàm cổ và nung liên tục 36 giờ trong lò củi ở nhiệt độ 1280°C.")
-                .materialInfo("Đất sét non Cao Lanh Bát Tràng chọn lọc, men tro trấu tự nhiên.")
-                .dimensions("Cao 68cm x Đường kính thân 28cm")
-                .weightGram(8500)
-                .price(new BigDecimal("4800000.00"))
-                .stockQuantity(1)
-                .isUniqueArtwork(true)
-                .imageUrl("/images/luc-binh-men-ran-bat-trang.jpg")
-                .status("PUBLISHED")
-                .build();
-        productRepository.save(product);
+        // 7. Bài viết Tạp chí văn hóa di sản
+        if (articleRepository.count() == 0) {
+            HeritageArticle article = HeritageArticle.builder()
+                    .title("Huyền thoại Men Lam & Men Rạn Bát Tràng: 700 năm ngọn lửa hồng bất tử")
+                    .slug("huyen-thoai-men-lam-men-ran-bat-trang")
+                    .excerpt("Hành trình tìm lại công thức men rạn thất truyền từ thời nhà Mạc và câu chuyện người nghệ nhân gìn giữ ngọn lửa lò bầu cổ.")
+                    .content("<p>Trải qua hơn 7 thế kỷ bên dòng sông Hồng đỏ nặng phù sa, làng gốm Bát Tràng không chỉ là nơi sản xuất những vật dụng sinh hoạt thường ngày mà còn là cái nôi kết tinh tinh hoa văn hóa đất Việt.</p><p>Kỹ thuật chế tác men rạn đòi hỏi sự hiểu biết sâu sắc về hệ số giãn nở nhiệt giữa xương gốm và lớp men phủ ngoài...</p>")
+                    .coverImageUrl("https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=80")
+                    .audioInterviewUrl("https://audio.domain.vn/interviews/nghe-nhan-bui-gia-gom.mp3")
+                    .videoInterviewUrl("https://youtube.com/watch?v=sample-gom-battrang")
+                    .craftVillage(batTrangPersisted)
+                    .artisan(defaultArtisan)
+                    .viewsCount(142)
+                    .status("PUBLISHED")
+                    .publishedAt(Instant.now())
+                    .build();
+            articleRepository.save(article);
+            log.info("[DATA_INIT] Đã khởi tạo bài viết Tạp chí văn hóa di sản mẫu!");
+        }
 
-        // 4. Tạo Hộ chiếu Di sản Số
-        String rawData = artisanProfile.getId() + ":" + product.getId() + ":" + Instant.now().toEpochMilli();
-        HeritagePassport passport = HeritagePassport.builder()
-                .product(product)
-                .passportCode("VN-BT882194")
-                .nfcTagUid("NFC-04-A1-2C-7B-89")
-                .craftingVideoUrl("https://www.youtube.com/embed/dQw4w9WgXcQ")
-                .artisanStoryQuote("Mỗi nếp rạn trên thân bình là một vết nứt thời gian, được nuôi dưỡng bởi hồn đất và tâm huyết của người thợ.")
-                .verificationHash(HashUtils.sha256(rawData))
-                .blockchainTxHash("0x82f1b4c9e88d7120a5991823bc89a7413f9a718c03")
-                .blockchainTokenId("78912")
-                .smartContractAddress("0x71a2B889cFe49D1e5e78B2c56a88F932De7189cF")
-                .scanCount(1)
-                .status("ACTIVE")
-                .build();
-        passportRepository.save(passport);
+        // 8. Tour trải nghiệm làng nghề
+        if (tourRepository.count() == 0) {
+            HeritageTour tour = HeritageTour.builder()
+                    .craftVillage(batTrangPersisted)
+                    .artisan(defaultArtisan)
+                    .title("Trải nghiệm Đôi tay Vuốt Gốm Cổ Truyền cùng Nghệ nhân Bát Tràng")
+                    .description("Khóa học thực cảnh 3.5 giờ tại lò cổ Bát Tràng. Quý khách tự tay nhào đất, vuốt gốm trên bàn xoay truyền thống, tự tay vẽ men lam và nung sản phẩm đem về làm kỷ niệm.")
+                    .pricePerPerson(new BigDecimal("350000.00"))
+                    .durationHours(3.5)
+                    .maxSlotsPerSession(15)
+                    .includedMaterials("1 khối đất sét trắng Cao Lanh, bộ cọ vẽ men chàm, tạp dề thủ công, dịch vụ nung khử 1280°C và đóng gói hộp di sản.")
+                    .images("[\"https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1200&q=80\"]")
+                    .status("ACTIVE")
+                    .build();
+            tourRepository.save(tour);
+            log.info("[DATA_INIT] Đã khởi tạo Tour trải nghiệm làng nghề mẫu!");
+        }
 
-        // 5. Ghi log quét lần đầu tại xưởng Bát Tràng
-        PassportAuditLog firstLog = PassportAuditLog.builder()
-                .passport(passport)
-                .ipAddress("118.70.182.45")
-                .userAgent("NFC Reader Device • Workshop Studio")
-                .latitude(20.9781)
-                .longitude(105.9125)
-                .city("Hà Nội")
-                .country("VN")
-                .isAnomaly(false)
-                .build();
-        auditLogRepository.save(firstLog);
+        // 9. Chiến dịch gây quỹ bảo tồn
+        if (campaignRepository.count() == 0) {
+            CrowdfundingCampaign campaign = CrowdfundingCampaign.builder()
+                    .craftVillage(batTrangPersisted)
+                    .targetArtisan(defaultArtisan)
+                    .title("Phục dựng Lò Bầu Cổ Thất Truyền Thế Kỷ 19 tại Làng Gốm Bát Tràng")
+                    .storyContent("Lò bầu cổ 5 bầu nung củi cuối cùng của làng Bát Tràng đang đứng trước nguy cơ xuống cấp trầm trọng. Dự án gây quỹ nhằm mua sắm vật liệu gạch chịu lửa, phục dựng lại nguyên trạng 5 bầu lò để tổ chức các buổi nung gốm truyền thống cho thế hệ trẻ và du khách yêu di sản.")
+                    .coverImageUrl("https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1200&q=80")
+                    .targetAmount(new BigDecimal("150000000.00"))
+                    .currentAmount(new BigDecimal("48500000.00"))
+                    .startDate(LocalDate.now().minusDays(10))
+                    .deadline(LocalDate.now().plusDays(50))
+                    .donorsCount(32)
+                    .fundingType("ALL_OR_NOTHING")
+                    .rewardTiers("[{\"tierId\":\"TIER_1\",\"minAmount\":200000,\"rewardTitle\":\"Bưu thiếp Di sản Tri ân\",\"description\":\"Bưu thiếp ảnh lò cổ kèm chữ ký nghệ nhân\"},{\"tierId\":\"TIER_2\",\"minAmount\":1000000,\"rewardTitle\":\"Chén Men Rạn Khắc Tên\",\"description\":\"Một chiếc chén men rạn Bát Tràng nung bằng mẻ lò phục dựng đầu tiên\"}]")
+                    .status("ACTIVE")
+                    .build();
+            campaignRepository.save(campaign);
+            log.info("[DATA_INIT] Đã khởi tạo Chiến dịch gây quỹ bảo tồn di sản mẫu!");
+        }
 
-        log.info("[DATA_INIT] Đã khởi tạo hoàn tất 6 làng nghề di sản tiêu biểu!");
+        // 10. Tạo các tài khoản chuẩn cho 4 vai trò (Role-Based Testing & Dev Switcher)
+        if (userRepository.findByEmail("customer@heritage.vn").isEmpty() && userRepository.findByPhone("0912345678").isEmpty()) {
+            User customer = User.builder()
+                    .email("customer@heritage.vn")
+                    .phone("0912345678")
+                    .fullName("Lê Minh Anh (Du khách)")
+                    .passwordHash(passwordEncoder.encode("Heritage@2026"))
+                    .role("ROLE_CUSTOMER")
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(customer);
+            log.info("[DATA_INIT] Đã khởi tạo tài khoản Khách hàng: customer@heritage.vn");
+        }
+
+        if (userRepository.findByEmail("village.admin@heritage.vn").isEmpty() && userRepository.findByPhone("0923456789").isEmpty()) {
+            User villageAdmin = User.builder()
+                    .email("village.admin@heritage.vn")
+                    .phone("0923456789")
+                    .fullName("Nguyễn Văn Hùng (Trưởng Ban Quản Lý)")
+                    .passwordHash(passwordEncoder.encode("Heritage@2026"))
+                    .role("ROLE_VILLAGE_ADMIN")
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(villageAdmin);
+            log.info("[DATA_INIT] Đã khởi tạo tài khoản Quản lý Làng: village.admin@heritage.vn");
+        }
+
+        if (userRepository.findByEmail("superadmin@heritage.vn").isEmpty() && userRepository.findByPhone("0934567890").isEmpty()) {
+            User superAdmin = User.builder()
+                    .email("superadmin@heritage.vn")
+                    .phone("0934567890")
+                    .fullName("Cục Di Sản Văn Hóa Quốc Gia")
+                    .passwordHash(passwordEncoder.encode("Heritage@2026"))
+                    .role("ROLE_SUPER_ADMIN")
+                    .status("ACTIVE")
+                    .build();
+            userRepository.save(superAdmin);
+            log.info("[DATA_INIT] Đã khởi tạo tài khoản Super Admin: superadmin@heritage.vn");
+        }
+
+        User defaultCustomer = userRepository.findByEmail("customer@heritage.vn")
+                .or(() -> userRepository.findByPhone("0912345678"))
+                .or(() -> userRepository.findAll().stream().findFirst())
+                .orElse(null);
+        Product defaultProduct = productRepository.findAll().stream().findFirst().orElse(null);
+
+        // 11. Tạo các Đơn hàng mẫu ở 4 trạng thái cho Kanban Nghệ Nhân & Escrow
+        if (orderRepository.count() == 0 && defaultCustomer != null && defaultProduct != null && defaultArtisan != null) {
+            // Đơn 1: Chờ chuẩn bị (PREPARING)
+            com.heritage.platform.modules.order.entity.Order o1 = com.heritage.platform.modules.order.entity.Order.builder()
+                    .orderCode("VN-20261001-A101")
+                    .customer(defaultCustomer)
+                    .totalAmount(defaultProduct.getPrice())
+                    .shippingFee(BigDecimal.ZERO)
+                    .finalAmount(defaultProduct.getPrice())
+                    .paymentMethod("VIETQR")
+                    .paymentStatus("PENDING")
+                    .shippingStatus("PREPARING")
+                    .shippingAddress("Số 45 Tràng Tiền, Hoàn Kiếm, Hà Nội (Người nhận: Lê Minh Anh, SĐT: 0912345678)")
+                    .build();
+            com.heritage.platform.modules.order.entity.OrderItem item1 = com.heritage.platform.modules.order.entity.OrderItem.builder()
+                    .order(o1)
+                    .product(defaultProduct)
+                    .unitPrice(defaultProduct.getPrice())
+                    .quantity(1)
+                    .subtotal(defaultProduct.getPrice())
+                    .build();
+            o1.getItems().add(item1);
+            orderRepository.save(o1);
+            escrowService.createEscrowHold(o1, defaultArtisan, defaultProduct.getPrice());
+
+            // Đơn 2: Đang chế tác (CRAFTING)
+            com.heritage.platform.modules.order.entity.Order o2 = com.heritage.platform.modules.order.entity.Order.builder()
+                    .orderCode("VN-20260928-B202")
+                    .customer(defaultCustomer)
+                    .totalAmount(defaultProduct.getPrice())
+                    .shippingFee(BigDecimal.ZERO)
+                    .finalAmount(defaultProduct.getPrice())
+                    .paymentMethod("VIETQR")
+                    .paymentStatus("PAID")
+                    .shippingStatus("CRAFTING")
+                    .shippingAddress("Tầng 12 Tòa nhà Bitexco, Q.1, TP. Hồ Chí Minh (Người nhận: Trần Hải Đăng, SĐT: 0903112233)")
+                    .build();
+            com.heritage.platform.modules.order.entity.OrderItem item2 = com.heritage.platform.modules.order.entity.OrderItem.builder()
+                    .order(o2)
+                    .product(defaultProduct)
+                    .unitPrice(defaultProduct.getPrice())
+                    .quantity(1)
+                    .subtotal(defaultProduct.getPrice())
+                    .build();
+            o2.getItems().add(item2);
+            orderRepository.save(o2);
+            escrowService.createEscrowHold(o2, defaultArtisan, defaultProduct.getPrice());
+
+            // Đơn 3: Đã đóng gói / đang giao (SHIPPED)
+            com.heritage.platform.modules.order.entity.Order o3 = com.heritage.platform.modules.order.entity.Order.builder()
+                    .orderCode("VN-20260925-C303")
+                    .customer(defaultCustomer)
+                    .totalAmount(defaultProduct.getPrice())
+                    .shippingFee(BigDecimal.ZERO)
+                    .finalAmount(defaultProduct.getPrice())
+                    .paymentMethod("VIETQR")
+                    .paymentStatus("PAID")
+                    .shippingStatus("SHIPPED")
+                    .shippingAddress("Số 88 Lê Duẩn, Hải Châu, Đà Nẵng (Người nhận: Phạm Thúy Nga, SĐT: 0935889900)")
+                    .build();
+            com.heritage.platform.modules.order.entity.OrderItem item3 = com.heritage.platform.modules.order.entity.OrderItem.builder()
+                    .order(o3)
+                    .product(defaultProduct)
+                    .unitPrice(defaultProduct.getPrice())
+                    .quantity(1)
+                    .subtotal(defaultProduct.getPrice())
+                    .build();
+            o3.getItems().add(item3);
+            orderRepository.save(o3);
+            escrowService.createEscrowHold(o3, defaultArtisan, defaultProduct.getPrice());
+
+            // Đơn 4: Giao thành công (DELIVERED)
+            com.heritage.platform.modules.order.entity.Order o4 = com.heritage.platform.modules.order.entity.Order.builder()
+                    .orderCode("VN-20260920-D404")
+                    .customer(defaultCustomer)
+                    .totalAmount(defaultProduct.getPrice())
+                    .shippingFee(BigDecimal.ZERO)
+                    .finalAmount(defaultProduct.getPrice())
+                    .paymentMethod("VIETQR")
+                    .paymentStatus("PAID")
+                    .shippingStatus("DELIVERED")
+                    .shippingAddress("Biệt thự Hoa Sữa 03, Vinhomes Riverside, Long Biên, Hà Nội")
+                    .build();
+            com.heritage.platform.modules.order.entity.OrderItem item4 = com.heritage.platform.modules.order.entity.OrderItem.builder()
+                    .order(o4)
+                    .product(defaultProduct)
+                    .unitPrice(defaultProduct.getPrice())
+                    .quantity(1)
+                    .subtotal(defaultProduct.getPrice())
+                    .build();
+            o4.getItems().add(item4);
+            orderRepository.save(o4);
+            escrowService.createEscrowHold(o4, defaultArtisan, defaultProduct.getPrice());
+
+            log.info("[DATA_INIT] Đã khởi tạo 4 đơn hàng mẫu ở 4 trạng thái Kanban cho Nghệ nhân!");
+        }
+
+        // 12. Tạo lịch sử giao dịch Ví Nghệ Nhân mẫu
+        if (walletTransactionRepository.count() == 0 && defaultArtisan != null) {
+            com.heritage.platform.modules.artisan.entity.WalletTransaction tx1 = com.heritage.platform.modules.artisan.entity.WalletTransaction.builder()
+                    .artisan(defaultArtisan)
+                    .amount(new BigDecimal("15000000.00"))
+                    .transactionType("WITHDRAW")
+                    .status("COMPLETED")
+                    .bankName("Ngân hàng Ngoại Thương (Vietcombank)")
+                    .bankAccountNumber("0011009876543")
+                    .bankAccountName("BUI GIA GOM")
+                    .txReference("WD-88A92B10")
+                    .note("Rút tiền doanh thu mẻ gốm tháng 09/2026")
+                    .build();
+            com.heritage.platform.modules.artisan.entity.WalletTransaction tx2 = com.heritage.platform.modules.artisan.entity.WalletTransaction.builder()
+                    .artisan(defaultArtisan)
+                    .amount(new BigDecimal("9120000.00"))
+                    .transactionType("ESCROW_RELEASE")
+                    .status("COMPLETED")
+                    .bankName("Hệ Thống Ký Quỹ Escrow")
+                    .txReference("ESC-RELEASE-4412")
+                    .note("Giải ngân tự động sau 7 ngày đơn hàng VN-20260915-X992")
+                    .build();
+            walletTransactionRepository.saveAll(List.of(tx1, tx2));
+            log.info("[DATA_INIT] Đã khởi tạo lịch sử giao dịch Ví Nghệ Nhân mẫu!");
+        }
+
+        log.info("[DATA_INIT] Đã khởi tạo hoàn tất toàn bộ dữ liệu mẫu di sản, đơn hàng & cộng đồng!");
     }
 }

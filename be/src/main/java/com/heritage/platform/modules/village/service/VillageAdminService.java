@@ -142,6 +142,8 @@ public class VillageAdminService {
 
         User savedArtisanUser = userRepository.save(artisanUser);
 
+        String certificationsJson = request.getCertifications() != null ? request.getCertifications().toString() : null;
+
         ArtisanProfile profile = ArtisanProfile.builder()
                 .user(savedArtisanUser)
                 .craftVillage(village)
@@ -150,6 +152,9 @@ public class VillageAdminService {
                 .representativeAdmin(adminUser)
                 .title(request.getTitle().trim())
                 .bio(request.getBio() != null ? request.getBio().trim() : "Nghệ nhân truyền thống làng nghề " + village.getName())
+                .philosophy(request.getPhilosophy() != null ? request.getPhilosophy().trim() : "Gốm không chỉ là đất, gốm là hồn người nương vào lửa.")
+                .interviewMediaUrl(request.getInterviewMediaUrl())
+                .certifications(certificationsJson)
                 .experienceYears(request.getExperienceYears() != null ? request.getExperienceYears() : 10)
                 .workshopAddress(request.getWorkshopAddress() != null ? request.getWorkshopAddress().trim() : village.getAddressLine())
                 .specialtySkills(request.getSpecialtySkills())
@@ -164,10 +169,13 @@ public class VillageAdminService {
 
         return ProxyArtisanResponse.builder()
                 .artisanId(savedProfile.getId())
+                .id(savedProfile.getId())
                 .userId(savedArtisanUser.getId())
                 .fullName(savedArtisanUser.getFullName())
                 .phone(savedArtisanUser.getPhone())
                 .title(savedProfile.getTitle())
+                .philosophy(savedProfile.getPhilosophy())
+                .interviewMediaUrl(savedProfile.getInterviewMediaUrl())
                 .activationCode(activationCode)
                 .workshopAddress(savedProfile.getWorkshopAddress())
                 .managedByVillageAdmin(true)

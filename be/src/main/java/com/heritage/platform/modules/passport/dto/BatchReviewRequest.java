@@ -12,8 +12,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BatchReviewRequest {
 
-    @NotNull(message = "common:validation.required")
     private Boolean approved;
+
+    private String action; // APPROVE hoặc REJECT
 
     private String rejectionReason;
 }

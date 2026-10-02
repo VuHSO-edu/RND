@@ -28,7 +28,11 @@ public class BatchGenerateRequest {
 
     private String craftingVideoUrl;
 
+    private String batchVideoUrl;
+
     private String artisanStoryQuote;
 
     private Instant productionDate;
+
+    private String manufacturingDate;
 }

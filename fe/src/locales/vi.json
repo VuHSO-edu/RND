@@ -43,5 +43,68 @@
     "withdraw": "RÚT TIỀN VỀ TÀI KHOẢN NGÂN HÀNG",
     "availableBalance": "Số dư khả dụng",
     "escrowBalance": "Đang tạm giữ ký quỹ"
+  },
+  "product": {
+    "backToCatalog": "Quay lại Chợ Di Sản",
+    "uniqueArtwork": "Độc Bản (1 of 1)",
+    "standardArtwork": "Tác Phẩm Tiêu Chuẩn",
+    "hasPassport": "Có Hộ Chiếu Di Sản Số",
+    "viewPassport": "Xem Hộ Chiếu Di Sản",
+    "passportCode": "Mã Hộ Chiếu",
+    "skuCode": "Mã SKU",
+    "artisanTitle": "Nghệ nhân chế tác",
+    "craftVillage": "Làng nghề",
+    "price": "Giá tác phẩm",
+    "quantity": "Số lượng",
+    "addToCart": "Thêm Vào Giỏ Hàng",
+    "buyNow": "Đặt Mua & Ký Quỹ",
+    "customCommission": "Đặt Chế Tác Riêng (Custom Commission)",
+    "inStock": "Còn hàng trong xưởng",
+    "outOfStock": "Tác phẩm đã có chủ nhân",
+    "dimensions": "Kích thước",
+    "material": "Chất liệu tự nhiên",
+    "weight": "Trọng lượng",
+    "firingTemp": "Nhiệt độ nung",
+    "firingTempVal": "1.280°C (Lò củi liên tục 36 giờ)",
+    "tabs": {
+      "details": "Chi Tiết & Chất Liệu",
+      "process": "Quy Trình Tạo Tác",
+      "artisan": "Hồ Sơ Nghệ Nhân",
+      "reviews": "Đánh Giá Có Xác Thực",
+      "passport": "Bảo Chứng Sổ Cái"
+    },
+    "viewMode": {
+      "artwork": "Ảnh Chi Tiết Men / Vân",
+      "model3d": "Mô Hình 3D Xoay 360°",
+      "depth": "Hiệu Ứng Chiều Sâu 3D"
+    },
+    "escrow": {
+      "title": "Bảo Hộ Ký Quỹ Escrow 7 Ngày",
+      "desc": "Khoản thanh toán của bạn được giữ an toàn tại tài khoản ký quỹ trung gian. Tiền chỉ giải ngân cho nghệ nhân sau 7 ngày kể từ khi bạn nhận hàng và kiểm tra nguồn gốc thành công."
+    },
+    "reviews": {
+      "title": "Đánh Giá Có Xác Thực",
+      "subtitle": "Chỉ khách hàng đã nhận tác phẩm và xác thực Hộ chiếu thành công mới được gửi đánh giá",
+      "verifiedBadge": "ĐÃ MUA TÁC PHẨM & XÁC THỰC",
+      "empty": "Chưa có đánh giá nào cho tác phẩm này. Hãy là người đầu tiên sưu tầm!",
+      "writeReview": "Viết đánh giá tác phẩm",
+      "rating": "Chấm điểm",
+      "commentPlaceholder": "Chia sẻ cảm nhận về nước men, độ hoàn thiện và câu chuyện của tác phẩm...",
+      "submit": "GỬI ĐÁNH GIÁ"
+    },
+    "customModal": {
+      "title": "Đặt Chế Tác Tác Phẩm Theo Yêu Cầu",
+      "subtitle": "Trao đổi trực tiếp ý tưởng và yêu cầu kỹ thuật với nghệ nhân",
+      "dimensionsReq": "Kích thước mong muốn",
+      "materialReq": "Dòng men / Chất liệu mong muốn",
+      "notes": "Mô tả ý tưởng tạo tác hoặc lời chúc khắc lên phôi",
+      "depositNotice": "Lưu ý: Đơn hàng chế tác riêng yêu cầu đặt cọc 30% qua tài khoản ký quỹ Escrow.",
+      "send": "GỬI YÊU CẦU CHẾ TÁC",
+      "close": "THOÁT"
+    },
+    "toast": {
+      "addedToCart": "Đã thêm tác phẩm vào giỏ hàng thành công!",
+      "commissionSent": "Đã gửi yêu cầu chế tác riêng tới Nghệ nhân thành công!"
+    }
   }
 }

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { 
   ShieldCheck, 
   AlertTriangle, 
-  Link as LinkIcon, 
   Video, 
   History, 
   QrCode, 
@@ -11,8 +10,6 @@ import {
   Award, 
   UserCheck, 
   FileText,
-  Copy,
-  ExternalLink,
   Flame,
   CheckCircle2,
   Camera,
@@ -42,7 +39,6 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [scannerInitialTab, setScannerInitialTab] = useState<'camera' | 'upload'>('camera');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [copiedHash, setCopiedHash] = useState(false);
 
   const fetchPassportData = async (code: string) => {
     try {
@@ -62,12 +58,6 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
       fetchPassportData(passportCode);
     }
   }, []);
-
-  const handleCopyHash = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedHash(true);
-    setTimeout(() => setCopiedHash(false), 2000);
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -197,7 +187,7 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
                   </Badge>
                 </div>
                 <p className="text-xs text-gray-600 mt-0.5 font-sans">
-                  Tổng lượt quét: <strong className="text-heritage-indigo">{passport.scanCount} lượt</strong> • Chip NFC: <span className="font-mono">{passport.nfcTagUid || 'Đã gắn tem QR Decal'}</span>
+                  Tổng lượt quét: <strong className="text-heritage-indigo">{passport.scanCount} lượt</strong> • Mã Serial: <span className="font-mono font-bold text-heritage-terracotta">{passport.serialNumber || passport.passportCode}</span>
                 </p>
               </div>
             </div>
@@ -299,7 +289,7 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Định danh vật lý:</span>
-                    <span className="font-mono font-bold text-heritage-terracotta">{passport.nfcTagUid || 'Tem QR Chống Giả'}</span>
+                    <span className="font-mono font-bold text-heritage-terracotta">Tem QR Bảo Chứng Số</span>
                   </div>
                 </div>
               </div>
@@ -319,57 +309,6 @@ export const PassportDetailPage: React.FC<PassportDetailPageProps> = ({ initialC
                 <p className="text-xs text-gray-600 leading-relaxed font-sans">
                   {passport.product?.artisan?.bio || 'Nghệ nhân có nhiều năm cống hiến gìn giữ tinh hoa di sản làng nghề.'}
                 </p>
-              </div>
-
-              {/* 4. Chứng Nhận Nguồn Gốc Số Blockchain Ledger */}
-              <div className="bg-white p-6 rounded-2xl border border-heritage-indigo/10 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-heritage-indigo font-bold text-sm font-heritage">
-                    <LinkIcon className="w-4 h-4 text-heritage-terracotta" />
-                    Bảo Chứng Sổ Cái Blockchain
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    Bất Biến
-                  </span>
-                </div>
-                
-                <div className="space-y-3 font-mono text-xs">
-                  <div>
-                    <span className="text-gray-400 block text-[11px]">Mạng lưu trữ sổ cái:</span>
-                    <span className="text-heritage-indigo font-semibold">Polygon POS Mainnet (EVM)</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 block text-[11px]">Smart Contract:</span>
-                    <span className="text-gray-700 break-all text-[11px]">{passport.smartContractAddress}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 block text-[11px]">Mã băm kiểm định SHA-256:</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-emerald-700 break-all font-bold text-[11px] bg-emerald-50 p-1.5 rounded flex-1">
-                        {passport.verificationHash}
-                      </span>
-                      <button
-                        onClick={() => handleCopyHash(passport.verificationHash)}
-                        className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
-                        title="Sao chép chuỗi băm"
-                      >
-                        {copiedHash ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 block text-[11px]">Giao dịch trên chuỗi (TxHash):</span>
-                    <a
-                      href={`https://polygonscan.com/tx/${passport.blockchainTxHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-heritage-indigo hover:text-heritage-terracotta inline-flex items-center gap-1 text-[11px] font-bold"
-                    >
-                      {passport.blockchainTxHash.substring(0, 20)}...
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

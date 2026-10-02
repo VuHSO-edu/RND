@@ -51,6 +51,12 @@ public class ArtisanProfile extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String bio;
 
+    @Column(columnDefinition = "TEXT")
+    private String philosophy; // Triết lý làm nghề: "Gốm không chỉ là đất, gốm là hồn người nương vào lửa."
+
+    @Column(name = "interview_media_url")
+    private String interviewMediaUrl; // Video/audio phỏng vấn thực tế
+
     @Column(name = "specialty_skills", columnDefinition = "TEXT")
     private String specialtySkills;
 

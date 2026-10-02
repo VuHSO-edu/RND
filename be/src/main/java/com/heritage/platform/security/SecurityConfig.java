@@ -42,6 +42,17 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/public/**",
+                                "/api/v1/passports/*/verify",
+                                "/api/v1/passports/*/timeline",
+                                "/api/v1/passports/*/blockchain-proof",
+                                "/api/v1/artisans/*/public-profile",
+                                "/api/v1/map/locations",
+                                "/api/v1/articles/**",
+                                "/api/v1/tours",
+                                "/api/v1/tours/*",
+                                "/api/v1/crowdfunding/**",
+                                "/api/v1/orders/**",
+                                "/api/v1/escrow/**",
                                 "/h2-console/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**"
@@ -49,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers("/api/v1/villages/**").hasAnyRole("VILLAGE_ADMIN", "SUPER_ADMIN", "ADMIN")
                         .requestMatchers("/api/v1/artisan/**", "/api/v1/artisans/**").hasAnyRole("ARTISAN", "VILLAGE_ADMIN", "SUPER_ADMIN", "ADMIN")
+                        .requestMatchers("/api/v1/tours/verify-ticket").hasAnyRole("VILLAGE_ADMIN", "ARTISAN", "SUPER_ADMIN", "ADMIN")
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

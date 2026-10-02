@@ -158,22 +158,22 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Thanh chọn Tab kiểu thẻ cổ điển Neo-Heritage */}
-        <div className="flex items-center gap-2 p-1.5 bg-heritage-surface rounded-xl border border-heritage-border">
+        {/* Thanh chọn Tab kiểu thẻ hiện đại năng động */}
+        <div className="flex items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200 shadow-inner">
           <button
             type="button"
             onClick={() => {
               setMode('PRODUCT');
               setErrorMsg('');
             }}
-            className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
               mode === 'PRODUCT'
-                ? 'bg-heritage-red text-white shadow-sm'
-                : 'text-heritage-indigo hover:text-heritage-red hover:bg-white/60'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                : 'text-slate-600 hover:text-blue-600 hover:bg-white/60'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Nhập Tác phẩm Di sản</span>
+            <span>Nhập Tác Phẩm Di Sản</span>
           </button>
 
           <button
@@ -182,14 +182,14 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
               setMode('VILLAGE');
               setErrorMsg('');
             }}
-            className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
               mode === 'VILLAGE'
-                ? 'bg-heritage-red text-white shadow-sm'
-                : 'text-heritage-indigo hover:text-heritage-red hover:bg-white/60'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
+                : 'text-slate-600 hover:text-blue-600 hover:bg-white/60'
             }`}
           >
             <Landmark className="w-3.5 h-3.5" />
-            <span>Nhập Làng nghề Mới</span>
+            <span>Nhập Làng Nghề Mới</span>
           </button>
         </div>
 
@@ -414,23 +414,23 @@ export const HeritageDataEntryModal: React.FC<HeritageDataEntryModalProps> = ({
         )}
 
         {/* Thanh nút bấm hành động chuẩn: LƯU DỮ LIỆU và THOÁT */}
-        <div className="pt-4 border-t border-heritage-border flex items-center justify-end gap-3">
-          <Button
+        <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button
             type="button"
-            variant="secondary"
             onClick={onClose}
+            className="px-6 py-2.5 rounded-xl text-[13px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95 uppercase"
           >
             THOÁT
-          </Button>
+          </button>
 
-          <Button
+          <button
             type="submit"
-            variant="primary"
             disabled={loading || uploadingImage}
+            className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-[13px] font-bold flex items-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 uppercase"
           >
-            <Save className="w-4 h-4 mr-2" />
-            {loading ? 'ĐANG LƯU...' : 'LƯU DỮ LIỆU'}
-          </Button>
+            <Save className="w-4 h-4 text-amber-300" />
+            <span>{loading ? 'ĐANG LƯU...' : 'LƯU DỮ LIỆU'}</span>
+          </button>
         </div>
       </form>
     </HeritageModal>

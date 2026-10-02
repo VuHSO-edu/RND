@@ -68,6 +68,12 @@ public class ProductBatch extends BaseEntity {
     @Column(name = "block_number")
     private Long blockNumber;
 
+    @Column(name = "batch_video_url")
+    private String batchVideoUrl;
+
+    @Column(name = "download_zip_url")
+    private String downloadZipUrl;
+
     @Column(name = "batch_notes", columnDefinition = "TEXT")
     private String batchNotes;
 

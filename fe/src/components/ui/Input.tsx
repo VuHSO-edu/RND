@@ -30,19 +30,20 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="flex flex-col gap-1.5 w-full text-left">
       {label && (
-        <label className="text-[13px] font-sans font-semibold text-heritage-indigo flex items-center gap-1">
-          {label}
-          {required && <span className="text-heritage-red font-bold">*</span>}
+        <label className="text-[13px] font-sans font-bold text-black flex items-center justify-between">
+          <span className="flex items-center gap-1">
+            {label}
+            {required && <span className="text-red-500 font-bold">*</span>}
+          </span>
         </label>
       )}
       <input
         className={twMerge(
           clsx(
-            'w-full px-3.5 py-2.5 text-[13px] font-sans rounded-xl border transition-all duration-200 focus:outline-none shadow-sm',
-            // Thay màu chữ kỹ thuật #1677ff bằng Chàm sẫm #1C2D37 và viền nét Đỏ son #8B1E1E khi focus
-            'text-heritage-indigo placeholder:text-heritage-subtext/60 bg-white border-heritage-border focus:border-heritage-red focus:ring-2 focus:ring-heritage-red/15',
-            disabled && 'bg-heritage-surface/70 text-heritage-subtext/80 cursor-not-allowed border-heritage-border/50',
-            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20 text-red-900',
+            'w-full px-4 py-2.5 text-[14px] font-semibold font-sans rounded-xl border transition-all duration-200 focus:outline-none shadow-xs',
+            'text-[#1677ff] placeholder:text-slate-400 bg-slate-50/60 hover:bg-white border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 focus:bg-white',
+            disabled && 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200',
+            error && 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20 text-rose-900',
             className
           )
         )}
@@ -50,7 +51,7 @@ export const Input: React.FC<InputProps> = ({
         onBlur={handleBlur}
         {...props}
       />
-      {error && <span className="text-xs text-red-600 font-sans mt-0.5">{error}</span>}
+      {error && <span className="text-xs text-rose-600 font-sans mt-0.5">{error}</span>}
     </div>
   );
 };
