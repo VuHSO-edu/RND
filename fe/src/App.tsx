@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Map, ShoppingBag, QrCode, Hammer, Globe, User, 
-  Building2, ShieldAlert, LogOut, ChevronDown 
+  Building2, ShieldAlert, LogOut, ChevronDown, Compass, PackageCheck 
 } from 'lucide-react';
 import { HeritageMapPage } from './modules/map/pages/HeritageMapPage';
 import { ProductCatalogPage } from './modules/ecommerce/pages/ProductCatalogPage';
@@ -10,16 +10,21 @@ import { PassportDetailPage } from './modules/passport/pages/PassportDetailPage'
 import { ArtisanStudioPage } from './modules/artisan/pages/ArtisanStudioPage';
 import { VillageDashboardPage } from './modules/village/pages/VillageDashboardPage';
 import { SuperAdminVillagesPage } from './modules/admin/pages/SuperAdminVillagesPage';
+import { HeritageCommunityPage } from './modules/community/pages/HeritageCommunityPage';
 import { HeritageAuthPage } from './modules/auth/pages/HeritageAuthPage';
 import { AuthModal } from './components/auth/AuthModal';
+import { CartDrawer } from './components/cart/CartDrawer';
+import { CheckoutModal } from './components/cart/CheckoutModal';
+import { OrderHistoryModal } from './components/cart/OrderHistoryModal';
 import { useCartStore } from './stores/useCartStore';
 import { useAuthStore } from './stores/useAuthStore';
 import { Toaster } from 'sonner';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { Forbidden403Page } from './pages/Forbidden403Page';
-import { DevRoleSwitcher } from './components/auth/DevRoleSwitcher';
 import { AdaptiveMobileNav } from './components/navigation/AdaptiveMobileNav';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+type TabType = 'map' | 'catalog' | 'passport' | 'artisan' | 'village' | 'superadmin' | 'auth' | 'community';
 
 export const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -28,16 +33,14 @@ export const App: React.FC = () => {
     isAuthenticated, 
     isForbidden, 
     setForbidden, 
-    setAuthModalOpen, 
     logout, 
-    switchDevRole,
     initAuthRehydration 
   } = useAuthStore();
 
   const currentRole = user?.role || 'CUSTOMER';
 
   // Xác định tab mặc định dựa trên vai trò người dùng (Role-Dedicated Workspace)
-  const getDefaultTab = (role: string): 'map' | 'catalog' | 'passport' | 'artisan' | 'village' | 'superadmin' | 'auth' => {
+  const getDefaultTab = (role: string): TabType => {
     switch (role) {
       case 'ARTISAN':
         return 'artisan';
@@ -51,9 +54,14 @@ export const App: React.FC = () => {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'map' | 'catalog' | 'passport' | 'artisan' | 'village' | 'superadmin' | 'auth'>(() => getDefaultTab(currentRole));
+  const [activeTab, setActiveTab] = useState<TabType>(() => getDefaultTab(currentRole));
   const [selectedPassportCode, setSelectedPassportCode] = useState<string>('VN-BT882194');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
+
+  // Cart & Order Modals
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isOrderHistoryModalOpen, setIsOrderHistoryModalOpen] = useState(false);
 
   const cartItemsCount = useCartStore((state) => state.items.reduce((sum, i) => sum + i.quantity, 0));
 
@@ -92,12 +100,11 @@ export const App: React.FC = () => {
             onClick={() => setActiveTab(getDefaultTab(currentRole))}
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
-            <div 
-              className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-heritage-red flex items-center justify-center text-white font-heading font-bold text-lg md:text-xl shadow-md group-hover:bg-heritage-hoverRed transition-all duration-200 border border-heritage-gold/40"
-              style={{ backgroundColor: '#8B1E1E', color: '#FFFFFF' }}
-            >
-              DS
-            </div>
+            <img 
+              src="/logo.svg" 
+              alt="Logo Di Sản Làng Nghề" 
+              className="w-10 h-10 md:w-11 md:h-11 rounded-2xl shadow-md group-hover:scale-105 transition-transform duration-200 border border-heritage-gold/40 object-contain"
+            />
             <div>
               <span className="font-heading font-bold text-base md:text-xl text-heritage-indigo tracking-tight block">
                 DI SẢN LÀNG NGHỀ
@@ -137,6 +144,19 @@ export const App: React.FC = () => {
                 >
                   <ShoppingBag className="w-4 h-4 text-heritage-gold" style={{ color: activeTab === 'catalog' ? '#C59A3F' : undefined }} />
                   <span>Chợ Di Sản</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('community')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
+                    activeTab === 'community'
+                      ? 'bg-heritage-red text-white shadow-sm'
+                      : 'text-heritage-indigo hover:text-heritage-red hover:bg-white/60'
+                  }`}
+                  style={activeTab === 'community' ? { backgroundColor: '#8B1E1E', color: '#FFFFFF' } : undefined}
+                >
+                  <Compass className="w-4 h-4 text-heritage-gold" style={{ color: activeTab === 'community' ? '#C59A3F' : undefined }} />
+                  <span>Cộng Đồng & Tour</span>
                 </button>
 
                 <button
@@ -193,7 +213,7 @@ export const App: React.FC = () => {
                   style={activeTab === 'passport' ? { backgroundColor: '#8B1E1E', color: '#FFFFFF' } : undefined}
                 >
                   <QrCode className="w-4 h-4 text-heritage-gold" style={{ color: activeTab === 'passport' ? '#C59A3F' : undefined }} />
-                  <span>Khai Báo Lô & Gán NFC</span>
+                  <span>Khai Báo Lô & Xuất Tem QR</span>
                 </button>
 
                 <button
@@ -285,6 +305,19 @@ export const App: React.FC = () => {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab('community')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
+                    activeTab === 'community'
+                      ? 'bg-purple-800 text-white shadow-sm'
+                      : 'text-heritage-indigo hover:text-purple-800 hover:bg-white/60'
+                  }`}
+                  style={activeTab === 'community' ? { backgroundColor: '#6B21A8', color: '#FFFFFF' } : undefined}
+                >
+                  <Compass className="w-4 h-4 text-amber-300" />
+                  <span>Cộng Đồng & Tour</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('map')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
                     activeTab === 'map'
@@ -312,24 +345,22 @@ export const App: React.FC = () => {
               <span className="uppercase">{i18n.language}</span>
             </button>
 
-            {/* Giỏ Hàng Dành Cho Khách Hàng */}
-            {currentRole === 'CUSTOMER' && (
-              <div 
-                onClick={() => setActiveTab('catalog')}
-                className="relative cursor-pointer p-2.5 rounded-xl bg-heritage-surface hover:bg-white transition-all border border-heritage-border shadow-2xs"
-                title="Giỏ hàng di sản"
-              >
-                <ShoppingBag className="w-4 h-4 text-heritage-indigo" />
-                {cartItemsCount > 0 && (
-                  <span 
-                    className="absolute -top-1 -right-1 bg-heritage-red text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce shadow"
-                    style={{ backgroundColor: '#8B1E1E', color: '#FFFFFF' }}
-                  >
-                    {cartItemsCount}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Giỏ Hàng Di Sản (Click mở CartDrawer) */}
+            <div 
+              onClick={() => setIsCartDrawerOpen(true)}
+              className="relative cursor-pointer p-2.5 rounded-xl bg-heritage-surface hover:bg-white transition-all border border-heritage-border shadow-2xs"
+              title="Giỏ hàng di sản"
+            >
+              <ShoppingBag className="w-4 h-4 text-heritage-indigo" />
+              {cartItemsCount > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 bg-heritage-red text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce shadow"
+                  style={{ backgroundColor: '#8B1E1E', color: '#FFFFFF' }}
+                >
+                  {cartItemsCount}
+                </span>
+              )}
+            </div>
 
             {/* Nút Tài Khoản Người Dùng */}
             <div className="relative">
@@ -362,6 +393,15 @@ export const App: React.FC = () => {
                           Vai trò: {currentRole}
                         </span>
                       </div>
+
+                      {/* Nút Mở Lịch Sử Đơn Hàng & Ký Quỹ Escrow */}
+                      <button
+                        onClick={() => { setIsOrderHistoryModalOpen(true); setIsUserMenuOpen(false); }}
+                        className="w-full px-4 py-2.5 text-left text-heritage-indigo hover:bg-stone-50 font-bold flex items-center gap-2 transition-colors border-b border-gray-100"
+                      >
+                        <PackageCheck className="w-4 h-4 text-emerald-600" />
+                        <span>Đơn Hàng Của Tôi &amp; Ký Quỹ</span>
+                      </button>
 
                       <button
                         onClick={() => { setActiveTab('auth'); setIsUserMenuOpen(false); }}
@@ -402,14 +442,15 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Workspace Area - Được bảo vệ bằng ProtectedRoute & ErrorBoundary */}
+      {/* Main Workspace Area */}
       <main className="flex-1">
         <ErrorBoundary>
           {activeTab === 'map' && <HeritageMapPage />}
           {activeTab === 'catalog' && <ProductCatalogPage onSelectProductForPassport={handleOpenPassport} />}
+          {activeTab === 'community' && <HeritageCommunityPage />}
           {activeTab === 'passport' && <PassportDetailPage initialCode={selectedPassportCode} />}
 
-          {/* Tab Đăng Nhập & Hồ Sơ Di Sản Riêng Biệt (Neo-Heritage Auth Split-Screen) */}
+          {/* Tab Đăng Nhập & Hồ Sơ Di Sản Riêng Biệt */}
           {activeTab === 'auth' && (
             <HeritageAuthPage 
               onSuccessRedirect={(newRole) => setActiveTab(getDefaultTab(newRole))}
@@ -417,21 +458,21 @@ export const App: React.FC = () => {
             />
           )}
 
-          {/* Phân hệ Nghệ Nhân: Bảo vệ chỉ ARTISAN và SUPER_ADMIN được vào */}
+          {/* Phân hệ Nghệ Nhân */}
           {activeTab === 'artisan' && (
             <ProtectedRoute allowedRoles={['ARTISAN', 'SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
               <ArtisanStudioPage />
             </ProtectedRoute>
           )}
 
-          {/* Phân hệ Quản Lý Làng: Bảo vệ chỉ VILLAGE_ADMIN và SUPER_ADMIN được vào */}
+          {/* Phân hệ Quản Lý Làng */}
           {activeTab === 'village' && (
             <ProtectedRoute allowedRoles={['VILLAGE_ADMIN', 'SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
               <VillageDashboardPage />
             </ProtectedRoute>
           )}
 
-          {/* Phân hệ Super Admin: Bảo vệ chỉ SUPER_ADMIN được vào */}
+          {/* Phân hệ Super Admin */}
           {activeTab === 'superadmin' && (
             <ProtectedRoute allowedRoles={['SUPER_ADMIN']} fallbackToLogin={() => setActiveTab('auth')}>
               <SuperAdminVillagesPage />
@@ -440,19 +481,46 @@ export const App: React.FC = () => {
         </ErrorBoundary>
       </main>
 
-      {/* MOBILE ADAPTIVE BOTTOM NAVIGATION BAR (Tự động thích ứng icon theo 4 Role) */}
+      {/* Cart Sliding Drawer */}
+      <CartDrawer
+        isOpen={isCartDrawerOpen}
+        onClose={() => setIsCartDrawerOpen(false)}
+        onCheckout={() => {
+          setIsCartDrawerOpen(false);
+          setIsCheckoutModalOpen(true);
+        }}
+        onOpenOrderHistory={() => {
+          setIsCartDrawerOpen(false);
+          setIsOrderHistoryModalOpen(true);
+        }}
+      />
+
+      {/* Checkout Escrow Modal */}
+      <CheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        onSuccess={() => {
+          setIsCheckoutModalOpen(false);
+          setIsOrderHistoryModalOpen(true);
+        }}
+      />
+
+      {/* Customer Order History & Escrow Dispute Modal */}
+      <OrderHistoryModal
+        isOpen={isOrderHistoryModalOpen}
+        onClose={() => setIsOrderHistoryModalOpen(false)}
+      />
+
+      {/* MOBILE ADAPTIVE BOTTOM NAVIGATION BAR */}
       <AdaptiveMobileNav activeTab={activeTab} onSelectTab={(tab: any) => setActiveTab(tab)} />
 
-      {/* Floating Dev Role Switcher Bar để Tester/Dev thử nghiệm 1-click */}
-      <DevRoleSwitcher />
-
-      {/* Auth Modal & Quick Login khi Token hết hạn */}
+      {/* Auth Modal */}
       <AuthModal />
 
       {/* Global Toast Notification System */}
       <Toaster position="top-right" richColors />
 
-      {/* Footer (Ẩn trên mobile để tối ưu màn hình cảm ứng) */}
+      {/* Footer */}
       <footer className="hidden md:block bg-heritage-indigo text-white py-12 mt-20 border-t-2 border-heritage-gold/40">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div>
